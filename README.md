@@ -24,7 +24,7 @@ ParaPo! is an accessibility-friendly app for Filipino commuters, designed for pe
 
 ### 🔧 Built With
 
-[![React Native](https://img.shields.io/badge/React%20Native-61dafb?logo=react)](https://reactnative.dev/) – Core framework for building native mobile apps.  
+[![React Native](https://img.shields.io/badge/-React%20Native-black?style=flat&logo=react)](https://reactnative.dev/) – Core framework for building native mobile apps.  
 [![Expo](https://img.shields.io/badge/Expo-000020?logo=expo)](https://expo.dev/) – Toolchain for rapid React Native development.  
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript) – Main programming language for app logic and UI.
 
@@ -38,14 +38,23 @@ ParaPo! is an accessibility-friendly app for Filipino commuters, designed for pe
 
 - [VS Code](https://code.visualstudio.com/)  
 - [git & git bash](https://git-scm.com/)  
-- [Node.js (npm)](https://nodejs.org/)
 - [Google Chrome](https://www.google.com/chrome/)  
+- [Node Version Manager (NVM)](https://github.com/coreybutler/nvm-windows)
 
-**Recommended VS Code Extensions:**
-- [ES7+ React/Redux/React-Native snippets](https://marketplace.visualstudio.com/items?itemName=dsznajder.es7-react-js-snippets)
-- [React Native Tools](https://marketplace.visualstudio.com/items?itemName=msjsdiag.vscode-react-native)
-- [Expo Tools](https://marketplace.visualstudio.com/items?itemName=expo.vscode-expo-tools)
-
+**NVM Install Guide:**
+1. Go to [nvm-windows releases](https://github.com/coreybutler/nvm-windows/releases)
+2. Download and install the `.exe` file of the latest release
+3. Complete the Installation Wizard
+4. Confirm installation:
+   ```sh
+   nvm -v
+   ```
+5. Install and use the required Node.js version for this project:
+   ```sh
+   nvm install v22.12.0
+   nvm use v22.12.0
+   ```
+   
 To confirm you have the required tools installed, run the following commands in your terminal:
 
 ```sh
@@ -55,11 +64,16 @@ git -v
 ```
 
 - **On your device**  
-  - [Expo Go for Android](https://play.google.com/store/apps/details?id=host.exp.exponent)  
-  - [Expo Go for iOS](https://apps.apple.com/us/app/expo-go/id982107779)  
+  - [Expo Go for Android ![Android](https://img.shields.io/badge/-Android-3DDC84?logo=android&logoColor=white&style=flat-square)](https://play.google.com/store/apps/details?id=host.exp.exponent)  
+  - [Expo Go for iOS ![iOS](https://img.shields.io/badge/-iOS-000000?logo=apple&logoColor=white&style=flat-square)](https://apps.apple.com/us/app/expo-go/id982107779)  
 - **Optional**  
-  - [Android Studio](https://developer.android.com/studio)  
-  - [Xcode (macOS Only)](https://developer.apple.com/xcode/)  
+  - [Android Studio ![Windows](https://img.shields.io/badge/-Windows-0078D6?logo=windows&logoColor=white&style=flat-square) ![macOS](https://img.shields.io/badge/-macOS-000000?logo=apple&logoColor=white&style=flat-square)](https://developer.android.com/studio)   
+  - [Xcode (macOS Only) ![macOS](https://img.shields.io/badge/-macOS-000000?logo=apple&logoColor=white&style=flat-square)](https://developer.apple.com/xcode/)
+
+**Recommended VS Code Extensions:**
+- [ES7+ React/Redux/React-Native snippets](https://marketplace.visualstudio.com/items?itemName=dsznajder.es7-react-js-snippets)
+- [React Native Tools](https://marketplace.visualstudio.com/items?itemName=msjsdiag.vscode-react-native)
+- [Expo Tools](https://marketplace.visualstudio.com/items?itemName=expo.vscode-expo-tools)
 
 ### Installation
 
@@ -124,7 +138,7 @@ git -v
    git pull origin main-dev
    git push -u origin <your-name>-dev
    ```
-- Open a PR on GitHub: base is `main-dev`, compare `<your-name>-dev`
+- Open a PR on GitHub: base is `main-dev`, compare is `<your-name>-dev`
 
 [⬆️ Back to Top](#📒-table-of-contents)
 
