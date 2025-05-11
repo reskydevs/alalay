@@ -125,15 +125,11 @@ git -v
   ```bash
   git checkout -b <your-name>-dev main-dev
   ```
-- Work on your feature, then stage & commit  
-  ```bash
-  git add . && git commit -m "initial commit message"
-  ```
-- Publish your branch  
+- Publish your local branch to the remote repository  
   ```bash
   git push -u origin <your-name>-dev
   ```
-- Before you push for Pull (Merge) Requests, make sure to always pull the latest changes from `main-dev` while on your branch.
+- Before you push your commits for Pull (Merge) Requests, make sure to always pull the latest changes from `main-dev` while on your branch.
    ```bash
    git pull origin main-dev
    git push -u origin <your-name>-dev
