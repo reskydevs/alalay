@@ -4,21 +4,21 @@ This is a [React Native with Expo](https://reactnative.dev/docs/environment-setu
 
 ## 📒 Table of Contents
 
-1. [📖 About The Project](#1-📖-about-the-project)
+1. [📖 About The Project](#📖-about-the-project)
     - [🔧 Built With](#🔧-built-with)
-2. [💻 Setup](#2-💻-setup)
+2. [💻 Setup](#💻-setup)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
-3. [✅ Tests](#3-✅-tests)
-4. [🗺️ Roadmap](#4-🗺️-roadmap)
-5. [🤝 Contributing](#5-🤝-contributing)
-6. [✉️ Authors](#6-✉️-authors)
-7. [⭐ Acknowledgments](#7-⭐-acknowledgments)
-8. [📦 Version History (Releases)](#8-📦-version-history-releases)
+3. [✅ Tests](#✅-tests)
+4. [🗺️ Roadmap](#🗺️-roadmap)
+5. [🤝 Contributing](#🤝-contributing)
+6. [✉️ Authors](#✉️-authors)
+7. [⭐ Acknowledgments](#⭐-acknowledgments)
+8. [📦 Version History](#📦-version-history)
 
 ---
 
-## 1. 📖 About The Project
+## 📖 About The Project
 
 ParaPo! is an accessibility-friendly app for Filipino commuters, designed for persons with disabilities (PWDs) such as those who are deaf, have speech or mobility impairments, or experience communication challenges. It offers tap-to-play voice prompts like “Para po!” and “Bayad po, papuntang [location]”, along with visual animations to help users easily interact with drivers and conductors—making public transport more inclusive, safe, and stress-free. More helpful features are also built in, designed with accessibility and everyday commuting needs in mind.
 
@@ -32,7 +32,7 @@ ParaPo! is an accessibility-friendly app for Filipino commuters, designed for pe
 
 ---
 
-## 2. 💻 Setup
+## 💻 Setup
 
 ### Prerequisites
 
@@ -93,7 +93,7 @@ git -v
 
 ---
 
-## 3. ✅ Tests
+## ✅ Tests
 
 > _No tests configured yet._  
 
@@ -101,7 +101,7 @@ git -v
 
 ---
 
-## 4. 🗺️ Roadmap
+## 🗺️ Roadmap
 
 - Registration & development  
 - Build & test  
@@ -115,7 +115,7 @@ git -v
 
 ---
 
-## 5. 🤝 Contributing
+## 🤝 Contributing
 
 - Fetch & switch to `main-dev`  
   ```bash
@@ -144,7 +144,7 @@ git -v
 
 ---
 
-## 6. ✉️ Authors
+## ✉️ Authors
 
 - **Ralph Cajipe** [![GitHub](https://img.shields.io/badge/-181717?logo=github&style=flat-square)](https://github.com/ralphcajipe) | [![Email](https://img.shields.io/badge/-Email-D14836?logo=gmail&logoColor=white&style=flat-square)](mailto:ralphcajipe@gmail.com)
 - **Dhanco Mendoza** [![GitHub](https://img.shields.io/badge/-181717?logo=github&style=flat-square)](https://github.com/dhnxx) | [![Email](https://img.shields.io/badge/-Email-D14836?logo=gmail&logoColor=white&style=flat-square)](mailto:dhancomendoza@gmail.com)
@@ -154,7 +154,7 @@ git -v
 
 ---
 
-## 7. ⭐ Acknowledgments
+## ⭐ Acknowledgments
 
 - _to be updated_
 
@@ -162,7 +162,7 @@ git -v
 
 ---
 
-## 8. 📦 Version History (Releases)
+## 📦 Version History
 
 | Version | Release Date | Description                   | Developers |
 | ------- | ------------ | ----------------------------- | ---------- |
