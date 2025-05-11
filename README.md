@@ -2,26 +2,26 @@
 
 This is a [React Native with Expo](https://reactnative.dev/docs/environment-setup) project created by running `npx create-expo-app@latest`
 
-## 📒 Table of Contents
-1. [📖 About The Project](#about-the-project)
-    - [🔧 Built With](#built-with)
-2. [💻 Setup](#setup)
+## Table of Contents
+1. [📒About The Project](#about-the-project)
+    - [🔧Built With](#built-with)
+2. [💻Setup](#setup)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
-3. [✅ Tests](#tests)
-4. [🗺️ Roadmap](#roadmap)
-5. [🤝 Contributing](#contributing)
-6. [✉️ Authors](#authors)
-7. [⭐ Acknowledgments](#acknowledgments)
-8. [📦 Version History](#version-history)
+3. [✅Tests](#tests)
+4. [🗺️Roadmap](#roadmap)
+5. [🤝Contributing](#contributing)
+6. [✉️Authors](#authors)
+7. [⭐Acknowledgments](#acknowledgments)
+8. [📦Version History](#version-history)
 
 ---
 
-## 📖 About The Project
+## About The Project
 
 ParaPo! is an accessibility-friendly app for Filipino commuters, designed for persons with disabilities (PWDs) such as those who are deaf, have speech or mobility impairments, or experience communication challenges. It offers tap-to-play voice prompts like “Para po!” and “Bayad po, papuntang [location]”, along with visual animations to help users easily interact with drivers and conductors—making public transport more inclusive, safe, and stress-free. More helpful features are also built in, designed with accessibility and everyday commuting needs in mind.
 
-### 🔧 Built With
+### Built With
 
 [![React Native](https://img.shields.io/badge/-React%20Native-black?style=flat&logo=react)](https://reactnative.dev/) – Core framework for building native mobile apps.  
 [![Expo](https://img.shields.io/badge/Expo-000020?logo=expo)](https://expo.dev/) – Toolchain for rapid React Native development.  
@@ -31,7 +31,7 @@ ParaPo! is an accessibility-friendly app for Filipino commuters, designed for pe
 
 ---
 
-## 💻 Setup
+## Setup
 
 ### Prerequisites
 
@@ -92,7 +92,7 @@ git -v
 
 ---
 
-## ✅ Tests
+## Tests
 
 > _No tests configured yet._  
 
@@ -100,7 +100,7 @@ git -v
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 - Registration & development  
 - Build & test  
@@ -114,7 +114,7 @@ git -v
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 - Fetch & switch to `main-dev`  
   ```bash
@@ -143,7 +143,7 @@ git -v
 
 ---
 
-## ✉️ Authors
+## Authors
 
 - **Ralph Cajipe** [![GitHub](https://img.shields.io/badge/-181717?logo=github&style=flat-square)](https://github.com/ralphcajipe) | [![Email](https://img.shields.io/badge/-Email-D14836?logo=gmail&logoColor=white&style=flat-square)](mailto:ralphcajipe@gmail.com)
 - **Dhanco Mendoza** [![GitHub](https://img.shields.io/badge/-181717?logo=github&style=flat-square)](https://github.com/dhnxx) | [![Email](https://img.shields.io/badge/-Email-D14836?logo=gmail&logoColor=white&style=flat-square)](mailto:dhancomendoza@gmail.com)
@@ -153,7 +153,7 @@ git -v
 
 ---
 
-## ⭐ Acknowledgments
+## Acknowledgments
 
 - _to be updated_
 
@@ -161,7 +161,7 @@ git -v
 
 ---
 
-## 📦 Version History
+## Version History
 
 | Version | Release Date | Description                   | Developers |
 | ------- | ------------ | ----------------------------- | ---------- |
