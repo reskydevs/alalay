@@ -35,8 +35,9 @@ ParaPo! is an accessibility-friendly app for Filipino commuters, designed for pe
 
 ### Prerequisites
 
-- [VS Code](https://code.visualstudio.com/)  
-- [git & git bash](https://git-scm.com/)  
+- [VS Code](https://code.visualstudio.com/)
+- [Warp Terminal](https://www.warp.dev/download)  
+- [git & git bash](https://git-scm.com/)   
 - [Google Chrome](https://www.google.com/chrome/)  
 - [Node Version Manager (NVM)](https://github.com/coreybutler/nvm-windows)
 
