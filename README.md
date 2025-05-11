@@ -2,18 +2,18 @@
 
 This is a [React Native with Expo](https://reactnative.dev/docs/environment-setup) project created by running `npx create-expo-app@latest`
 
-## [📒Table of Contents](#📒table-of-contents)
-1. [📖About The Project](#📖about-the-project)
-    - [🔧Built With](#🔧-built-with)
-2. [💻Setup](#setup)
+## 📒 Table of Contents
+1. [📖 About The Project](#about-the-project)
+    - [🔧 Built With](#built-with)
+2. [💻 Setup](#setup)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
-3. [✅Tests](#✅tests)
-4. [🗺️Roadmap](#🗺️roadmap)
-5. [🤝Contributing](#🤝contributing)
-6. [✉️Authors](#✉️authors)
-7. [⭐Acknowledgments](#⭐acknowledgments)
-8. [📦Version History](#📦version-history)
+3. [✅ Tests](#tests)
+4. [🗺️ Roadmap](#roadmap)
+5. [🤝 Contributing](#contributing)
+6. [✉️ Authors](#authors)
+7. [⭐ Acknowledgments](#acknowledgments)
+8. [📦 Version History](#version-history)
 
 ---
 
@@ -27,7 +27,7 @@ ParaPo! is an accessibility-friendly app for Filipino commuters, designed for pe
 [![Expo](https://img.shields.io/badge/Expo-000020?logo=expo)](https://expo.dev/) – Toolchain for rapid React Native development.  
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript) – Main programming language for app logic and UI.
 
-[⬆️ Back to Top](#📒table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 ---
 
@@ -88,7 +88,7 @@ git -v
 4. Choose a launch option: emulator/simulator, dev build, or Expo Go.  
 5. Begin development by editing files under the **app/** directory.
 
-[⬆️ Back to Top](#📒table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 ---
 
@@ -96,7 +96,7 @@ git -v
 
 > _No tests configured yet._  
 
-[⬆️ Back to Top](#📒table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 ---
 
@@ -110,7 +110,7 @@ git -v
 - App submission  
 - Release  
 
-[⬆️ Back to Top](#📒table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 ---
 
@@ -139,7 +139,7 @@ git -v
    ```
 - Open a PR on GitHub: base is `main-dev`, compare is `<your-name>-dev`
 
-[⬆️ Back to Top](#📒table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 ---
 
@@ -149,7 +149,7 @@ git -v
 - **Dhanco Mendoza** [![GitHub](https://img.shields.io/badge/-181717?logo=github&style=flat-square)](https://github.com/dhnxx) | [![Email](https://img.shields.io/badge/-Email-D14836?logo=gmail&logoColor=white&style=flat-square)](mailto:dhancomendoza@gmail.com)
 - **Stephen Camilon** [![GitHub](https://img.shields.io/badge/-181717?logo=github&style=flat-square)](https://github.com/Stephencamilon) | [![Email](https://img.shields.io/badge/-Email-D14836?logo=gmail&logoColor=white&style=flat-square)](mailto:stephencamilon267@gmail.com)
 
-[⬆️ Back to Top](#📒table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 ---
 
@@ -157,7 +157,7 @@ git -v
 
 - _to be updated_
 
-[⬆️ Back to Top](#📒table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 ---
 
@@ -167,4 +167,4 @@ git -v
 | ------- | ------------ | ----------------------------- | ---------- |
 | v1.0.0  | 2025-TBA-TBA   | initial release              | name      |
 
-[⬆️ Back to Top](#📒table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
