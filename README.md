@@ -3,17 +3,19 @@
 This is a [React Native with Expo](https://reactnative.dev/docs/environment-setup) project created by running `npx create-expo-app@latest`
 
 ## Table of Contents
-1. [📒About The Project](#about-the-project)
-    - [🔧Built With](#built-with)
-2. [💻Setup](#setup)
+- [ParaPo! 👋](#parapo-)
+  - [Table of Contents](#table-of-contents)
+  - [About The Project](#about-the-project)
+    - [Built With](#built-with)
+  - [Setup](#setup)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
-3. [✅Tests](#tests)
-4. [🗺️Roadmap](#roadmap)
-5. [🤝Contributing](#contributing)
-6. [✉️Authors](#authors)
-7. [⭐Acknowledgments](#acknowledgments)
-8. [📦Version History](#version-history)
+  - [Tests](#tests)
+  - [Roadmap](#roadmap)
+  - [Contributing](#contributing)
+  - [Authors](#authors)
+  - [Acknowledgments](#acknowledgments)
+  - [Version History](#version-history)
 
 ---
 
@@ -25,7 +27,7 @@ ParaPo! is an accessibility-friendly app for Filipino commuters, designed for pe
 
 [![React Native](https://img.shields.io/badge/-React%20Native-black?style=flat&logo=react)](https://reactnative.dev/) – Core framework for building native mobile apps.  
 [![Expo](https://img.shields.io/badge/Expo-000020?logo=expo)](https://expo.dev/) – Toolchain for rapid React Native development.  
-[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript) – Main programming language for app logic and UI.
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript) – Main programming language for app logic and UI
 
 [⬆️ Back to Top](#table-of-contents)
 
