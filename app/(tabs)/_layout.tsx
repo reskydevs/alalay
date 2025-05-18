@@ -30,7 +30,7 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen
-          name="puv"
+          name="CommuteModeScreen"
           options={{
             title: "Commute Mode",
             tabBarIcon: ({ color, size }) => (
@@ -44,7 +44,7 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="instructions"
+          name="InstructionsScreen"
           options={{
             title: "Instructions",
             tabBarIcon: ({ color, size }) => (
@@ -58,7 +58,7 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="settings"
+          name="SettingsScreen"
           options={{
             title: "Settings",
             tabBarIcon: ({ color, size }) => (
