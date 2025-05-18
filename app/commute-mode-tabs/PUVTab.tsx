@@ -1,3 +1,6 @@
+// PUVTab: PUV (Jeep, Bus) commute UI
+// ...existing code from your previous Commute Mode/PUV logic...
+
 import axios from "axios";
 import * as Location from "expo-location";
 import React, { useState } from "react";
@@ -15,10 +18,10 @@ import {
 } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT, UrlTile } from "react-native-maps";
 
-// For OpenStreetMap tiles, we use custom tile URL
 const OSM_TILE_URL = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-export default function PUVScreen() {
+export default function PUVTab() {
+  // ...existing code for state, effects, handlers...
   const [destination, setDestination] = useState<{
     latitude: number;
     longitude: number;
@@ -31,14 +34,10 @@ export default function PUVScreen() {
   });
   const [currentLocation, setCurrentLocation] =
     useState<Location.LocationObjectCoords | null>(null);
-
-  // Helper to reverse geocode coordinates to address string
   const [fromAddress, setFromAddress] = useState<string>("Detecting...");
   const [toAddress, setToAddress] = useState<string>(
     "Tap on map to set destination"
   );
-
-  // Autocomplete state
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -60,11 +59,7 @@ export default function PUVScreen() {
     })();
   }, []);
 
-  // Helper to format address from reverse geocode result
-  function formatAddress(
-    result: Partial<Location.LocationGeocodedAddress>
-  ): string {
-    // Prefer street + city + region, fallback to name or country
+  function formatAddress(result: Partial<Location.LocationGeocodedAddress>): string {
     const { name, street, city, region, country, postalCode } = result;
     let parts = [street, city, region, country].filter(Boolean);
     if (parts.length === 0 && name) parts = [name];
@@ -72,7 +67,6 @@ export default function PUVScreen() {
     return parts.length > 0 ? parts.join(", ") : "Unknown location";
   }
 
-  // Update FROM address when currentLocation changes
   React.useEffect(() => {
     if (currentLocation) {
       Location.reverseGeocodeAsync({
@@ -90,7 +84,6 @@ export default function PUVScreen() {
     }
   }, [currentLocation]);
 
-  // Update TO address when destination changes
   React.useEffect(() => {
     if (destination) {
       Location.reverseGeocodeAsync({
@@ -110,7 +103,6 @@ export default function PUVScreen() {
     }
   }, [destination]);
 
-  // Nominatim search for destination autocomplete
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     if (!query.trim()) {
@@ -158,17 +150,6 @@ export default function PUVScreen() {
       keyboardVerticalOffset={80}
     >
       <View style={styles.container}>
-        {/* Tab Selector */}
-        <View style={styles.tabSelector}>
-          <TouchableOpacity style={[styles.tab, styles.activeTab]}>
-            <Text style={styles.tabText}>PUV (Jeep, Bus)</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.tab, styles.disabledTab]} disabled>
-            <Text style={[styles.tabText, styles.disabledText]}>
-              Transit (LRT, MRT)
-            </Text>
-          </TouchableOpacity>
-        </View>
         {/* Map or Placeholder */}
         {Platform.OS === "web" ? (
           <View
@@ -344,32 +325,6 @@ export default function PUVScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  tabSelector: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 40,
-    marginBottom: 10,
-  },
-  tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    marginHorizontal: 5,
-  },
-  activeTab: {
-    backgroundColor: "#222",
-  },
-  disabledTab: {
-    backgroundColor: "#eee",
-  },
-  tabText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  disabledText: {
-    color: "#888",
-  },
   map: {
     flex: 1,
     marginHorizontal: 10,
