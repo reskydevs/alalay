@@ -37,18 +37,19 @@ export default function VoicePromptsTab() {
   };
 
   return (
+    // Dismiss keyboard when tapping outside input
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAwareScrollView
         style={{ flex: 1, backgroundColor: '#fff' }}
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
         enableOnAndroid={true}
-        extraScrollHeight={100} // Increase scroll height to ensure input is visible
+        extraScrollHeight={100} // Ensure input is visible above keyboard
         extraHeight={100} // Also try extraHeight for more robust avoidance
         enableAutomaticScroll={true}
       >
         <View style={styles.container}>
-          {/* 2-column grid of prompts as BUTTONS */}
+          {/* 2-column grid of default prompts as BUTTONS */}
           <View style={styles.promptGrid}>
             {DEFAULT_PROMPTS.map((prompt, idx) => (
               <TouchableOpacity
