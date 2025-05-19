@@ -46,7 +46,7 @@ ParaPo! is an accessibility-friendly app for Filipino commuters, designed for pe
 **NVM Install Guide:**
 
 1. Go to [nvm-windows releases](https://github.com/coreybutler/nvm-windows/releases)
-2. Download and install the `.exe` file of the latest release
+2. Under Assets, download and install the `nvm-setup.exe` file of the latest release
 3. Complete the Installation Wizard
 4. Confirm installation:
 
