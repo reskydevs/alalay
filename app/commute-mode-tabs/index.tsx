@@ -6,12 +6,13 @@ import PUVTab from "./PUVTab";
 import TransitTab from "./TransitTab";
 import VoicePromptsTab from "./VoicePromptsTab";
 
-
+// Tab labels for the selector
 const TABS = ["PUV", "Transit", "Voice Prompts", "ID Card"];
 
 export default function CommuteModeScreen() {
   const [selectedTab, setSelectedTab] = useState("PUV");
 
+  // Render the correct tab content based on selection
   let Content;
   switch (selectedTab) {
     case "PUV":
@@ -32,6 +33,7 @@ export default function CommuteModeScreen() {
 
   return (
     <View style={{ flex: 1 }}>
+      {/* Tab selector row */}
       <View style={styles.tabSelector}>
         {TABS.map((tab) => (
           <TouchableOpacity
@@ -53,6 +55,7 @@ export default function CommuteModeScreen() {
           </TouchableOpacity>
         ))}
       </View>
+      {/* Render selected tab content */}
       <View style={{ flex: 1 }}>{Content}</View>
     </View>
   );
