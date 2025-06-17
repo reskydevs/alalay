@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Alert, Dimensions, useWindowDimensions } from "react-native";
 
 const STORAGE_KEY = "user_idcard_image_uri";
@@ -65,9 +65,9 @@ export function useIDCard() {
       "Your ID image stays on your phone and is never uploaded to the cloud."
     );
   };
-
-  const handleZoomIn = () => {
-    imageZoomRef.current?.centerOn?.({
+  const handleZoomIn = (ref?: React.RefObject<any>) => {
+    const zoomRef = ref || imageZoomRef;
+    zoomRef.current?.centerOn?.({
       x: 0,
       y: 0,
       scale: Math.min(zoomScale + 0.25, maxScale),
@@ -76,8 +76,9 @@ export function useIDCard() {
     setZoomScale((z) => Math.min(z + 0.25, maxScale));
   };
 
-  const handleZoomOut = () => {
-    imageZoomRef.current?.centerOn?.({
+  const handleZoomOut = (ref?: React.RefObject<any>) => {
+    const zoomRef = ref || imageZoomRef;
+    zoomRef.current?.centerOn?.({
       x: 0,
       y: 0,
       scale: Math.max(zoomScale - 0.25, minScale),

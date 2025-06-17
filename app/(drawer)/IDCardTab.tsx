@@ -8,7 +8,7 @@ import {
   Text,
   TouchableOpacity,
   useWindowDimensions,
-  View,
+  View
 } from "react-native";
 import ImageZoom from "react-native-image-pan-zoom";
 import { useIDCard } from "../logic/useIdCard";
@@ -18,6 +18,7 @@ export default function IDCardTab() {
     idImage,
     modalVisible,
     zoomScale,
+    setZoomScale,
     rotation,
     setModalVisible,
     showPrivacyInfo,
@@ -43,13 +44,18 @@ export default function IDCardTab() {
 
       <View className="flex-1 justify-center items-center">
         {idImage && (
-          <Text className="mb-4 text-center text-gray-500">
-            Add a photo of your Valid ID.{"\n"}
-            <Text className="font-bold" onPress={showPrivacyInfo}>
-              Your ID stays on your phone for your privacy.
+          <View className="mb-4">
+            <Text className="text-center text-gray-500">
+              Add a photo of your Valid ID.
             </Text>
-          </Text>
+            <Text className="text-center text-gray-500">
+              <Text className="font-bold" onPress={showPrivacyInfo}>
+                Your ID stays on your phone for your privacy.
+              </Text>
+            </Text>
+          </View>
         )}
+        
         {idImage ? (
           <>
             <Pressable
@@ -83,7 +89,6 @@ export default function IDCardTab() {
             >
               <View className="flex-1 justify-center items-center bg-black/90">
                 <View className="justify-center items-center w-full h-full">
-                  {/* @ts-ignore */}
                   <ImageZoom
                     ref={imageZoomRef}
                     cropWidth={window.width}
@@ -98,7 +103,7 @@ export default function IDCardTab() {
                     pinchToZoom
                     useNativeDriver
                     scale={zoomScale}
-                    onMove={({ scale }) => {}}
+                    onMove={({ scale }) => setZoomScale(scale)}
                   >
                     <Image
                       source={{ uri: idImage }}
@@ -114,7 +119,7 @@ export default function IDCardTab() {
                   <View className="absolute bottom-[70px] left-0 right-0 flex-row justify-center items-center bg-black/30 rounded-2xl px-3 py-1.5 z-20">
                     <TouchableOpacity
                       className="p-3 mx-3"
-                      onPress={handleZoomOut}
+                      onPress={() => handleZoomOut(imageZoomRef)}
                       accessibilityLabel="Zoom out"
                     >
                       <MaterialCommunityIcons
@@ -128,7 +133,7 @@ export default function IDCardTab() {
                     </Text>
                     <TouchableOpacity
                       className="p-3 mx-3"
-                      onPress={handleZoomIn}
+                      onPress={() => handleZoomIn(imageZoomRef)}
                       accessibilityLabel="Zoom in"
                     >
                       <MaterialCommunityIcons
@@ -160,9 +165,9 @@ export default function IDCardTab() {
                       color="#fff"
                     />
                   </TouchableOpacity>
+                  
                   <Text className="px-3 py-1 mt-3 text-sm font-normal text-center text-white rounded-md bg-black/30">
-                    Pinch or double tap to zoom. Drag to move. Use the rotate
-                    button to rotate image.
+                    Pinch or double tap to zoom. Drag to move. Use the rotate button to rotate image.
                   </Text>
                 </View>
               </View>
@@ -170,12 +175,13 @@ export default function IDCardTab() {
           </>
         ) : (
           <View className="items-center justify-center mb-6 w-[260px] self-center">
-            <MaterialCommunityIcons
-              name="card-account-details-outline"
-              size={56}
-              color="#b0b0b0"
-              className="mb-3"
-            />
+            <View className="mb-3">
+              <MaterialCommunityIcons
+                name="card-account-details-outline"
+                size={56}
+                color="#b0b0b0"
+              />
+            </View>
             <Text className="mb-1 text-lg font-bold text-center text-gray-500">
               No ID Added
             </Text>
@@ -184,6 +190,7 @@ export default function IDCardTab() {
             </Text>
           </View>
         )}
+        
         <TouchableOpacity
           className="px-6 py-3 bg-teal-700 rounded-lg"
           onPress={handleAddID}
