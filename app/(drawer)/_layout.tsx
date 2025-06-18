@@ -6,7 +6,9 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { Drawer } from "expo-router/drawer";
+import * as Speech from "expo-speech";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -15,6 +17,17 @@ export default function RootLayout() {
   // });
 
   // if (!loaded) return null;
+
+  useEffect(() => {
+    console.log("[TTS] Warming up Expo Speech engine...");
+    Speech.speak(" ", {
+      language: "fil-PH",
+      rate: 1,
+      volume: 0,
+      onDone: () => console.log("[TTS] Speech engine warm-up complete."),
+      onError: (err) => console.error("[TTS] Speech engine warm-up error:", err),
+    });
+  }, []);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
