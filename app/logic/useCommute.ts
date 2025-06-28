@@ -51,7 +51,12 @@ export default function usePUVController() {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === "granted") {
-        const location = await Location.getCurrentPositionAsync({});
+        // Faster location acquisition with optimized settings
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced, // Good balance of speed vs accuracy
+          timeInterval: 1000, // Check every 1 second
+          distanceInterval: 10, // Update when moved 10 meters
+        });
         setCurrentLocation(location.coords);
         setRegion((prev) => ({
           ...prev,
