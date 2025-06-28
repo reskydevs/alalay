@@ -13,12 +13,24 @@ interface MapSectionProps {
 
 export default function MapSection({ region, onRegionChange, onMapPress, currentLocation, destination }: MapSectionProps) {
 
+  const handleRegionChange = (newRegion: any) => {
+    // Only update the region if the latitude/longitude changed significantly
+    // This prevents forced centering during tilt/rotate finger gestures
+    const latDiff = Math.abs(newRegion.latitude - region.latitude);
+    const lonDiff = Math.abs(newRegion.longitude - region.longitude);
+    
+    // Only call onRegionChange if the user actually moved the map center
+    if (latDiff > 0.001 || lonDiff > 0.001) {
+      onRegionChange(newRegion);
+    }
+  };
+
   return (
       <MapView
       style={{ flex: 1, minHeight: 500 }}
       className="flex-1 min-h-[500px]"
-      region={region}
-      onRegionChangeComplete={onRegionChange}
+      initialRegion={region}
+      onRegionChangeComplete={handleRegionChange}
       onPress={onMapPress}
       provider={PROVIDER_DEFAULT}
       showsUserLocation
