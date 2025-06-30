@@ -5,16 +5,18 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { DrawerNavigationProp } from "@react-navigation/drawer";
 import { useNavigation } from "expo-router";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
+  InteractionManager,
+  Keyboard,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -46,15 +48,42 @@ export default function HomeScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["10%", "50%"], []);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   const [activeTab, setActiveTab] = useState<"PUV" | "Transit">("PUV");
 
+  // Handle keyboard visibility
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+      // Expand bottom sheet when keyboard appears
+      bottomSheetRef.current?.snapToIndex(1);
+    });
+
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
+
   const handleSheetChanges = useCallback((index: number) => {
     setCurrentIndex(index);
+    // Dismiss keyboard only when bottom sheet is fully collapsed
+    if (index === 0) {
+      Keyboard.dismiss();
+    }
   }, []);
 
   const toggleSheet = () => {
     const nextIndex = currentIndex === 0 ? 1 : 0;
+    if (nextIndex === 0) {
+      // Collapse and dismiss keyboard in parallel
+      InteractionManager.runAfterInteractions(() => Keyboard.dismiss());
+    }
     bottomSheetRef.current?.snapToIndex(nextIndex);
   };
 
@@ -67,6 +96,8 @@ export default function HomeScreen() {
       "Destination Set",
       `Latitude: ${destination.latitude}\nLongitude: ${destination.longitude}`
     );
+    // Collapse and dismiss keyboard in parallel
+    InteractionManager.runAfterInteractions(() => Keyboard.dismiss());
     bottomSheetRef.current?.snapToIndex(0);
   };
 
@@ -150,9 +181,10 @@ export default function HomeScreen() {
       <BottomSheet
         ref={bottomSheetRef}
         index={0}
-        snapPoints={snapPoints}
+        snapPoints={keyboardVisible ? ["10%", "80%"] : snapPoints}
         onChange={handleSheetChanges}
         enableDynamicSizing={false}
+        android_keyboardInputMode="adjustResize"
         handleStyle={{
           backgroundColor: "#27ae60",
           borderTopLeftRadius: 16,
@@ -177,68 +209,90 @@ export default function HomeScreen() {
 
           <BottomSheetView
             className="px-4 pt-5 pb-10"
-            style={{ minHeight: 300 }}
+            style={{ minHeight: keyboardVisible ? 400 : 300 }}
           >
-            {/* From Address Input */}
-            <Text className="mb-2 font-semibold text-gray-700">From:</Text>
-            <TextInput
-              className="px-4 py-2 mb-4 text-black bg-white rounded-md border border-gray-300"
-              placeholder="Enter pickup location..."
-              value={fromAddress}
-              // Uncomment if you want editable fromAddress:
-              // onChangeText={(text) => setFromAddress(text)}
-            />
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ 
+                flexGrow: 1,
+                paddingBottom: keyboardVisible ? 20 : 0 
+              }}
+            >
+                {/* From Address Input */}
+                <Text className="mb-2 font-semibold text-gray-700">From:</Text>
+                <TextInput
+                  className="px-4 py-2 mb-4 text-black bg-white rounded-md border border-gray-300"
+                  placeholder="Enter pickup location..."
+                  value={fromAddress}
+                  // Uncomment if you want editable fromAddress:
+                  // onChangeText={(text) => setFromAddress(text)}
+                />
 
-            <Text className="mb-2 font-semibold text-gray-700">To:</Text>
-            <TextInput
-              className="px-4 py-2 text-black bg-white rounded-md border border-gray-300"
-              placeholder="Enter destination..."
-              value={searchQuery}
-              onChangeText={handleSearch}
-            />
+                <Text className="mb-2 font-semibold text-gray-700">To:</Text>
+                <TextInput
+                  className="px-4 py-2 text-black bg-white rounded-md border border-gray-300"
+                  placeholder="Enter destination..."
+                  value={searchQuery}
+                  onChangeText={handleSearch}
+                />
 
-            {searchLoading && (
-              <View className="flex items-center mt-2">
-                <ActivityIndicator size="small" color="#27ae60" />
-              </View>
-            )}
+                {searchLoading && (
+                  <View className="flex items-center mt-2">
+                    <ActivityIndicator size="small" color="#27ae60" />
+                  </View>
+                )}
 
-            {searchError && (
-              <Text className="mt-2 text-red-500">{searchError}</Text>
-            )}
+                {searchError && (
+                  <Text className="mt-2 text-red-500">{searchError}</Text>
+                )}
 
-            {searchResults.length > 0 && (
-              <FlatList
-                className="mt-2 max-h-48 bg-white rounded-md border border-gray-300"
-                data={searchResults}
-                keyExtractor={(item) => `${item.place_id}`}
-                renderItem={({ item }) => (
+                <View className="mt-4">
                   <TouchableOpacity
-                    onPress={() => handleSelectSearchResult(item)}
-                    className="p-3 border-b border-gray-200"
+                    className="items-center py-4 rounded-xl"
+                    onPress={onSetDestination}
+                    style={{ backgroundColor: "#27ae60" }}
                   >
-                    <Text className="text-sm text-black">
-                      {item.display_name}
+                    <Text className="text-base font-bold text-white">
+                      Set Destination
                     </Text>
                   </TouchableOpacity>
-                )}
-              />
-            )}
-
-            <View className="mt-4">
-              <TouchableOpacity
-                className="items-center py-4 rounded-xl"
-                onPress={onSetDestination}
-                style={{ backgroundColor: "#27ae60" }}
-              >
-                <Text className="text-base font-bold text-white">
-                  Set Destination
-                </Text>
-              </TouchableOpacity>
-            </View>
+                </View>
+              </ScrollView>
           </BottomSheetView>
         </Pressable>
       </BottomSheet>
+
+      {/* Google Maps-style Search Results Overlay */}
+      {searchResults.length > 0 && keyboardVisible && (
+        <View className="absolute top-48 left-4 right-4 bg-white rounded-lg shadow-lg max-h-80 z-50">
+          <ScrollView
+            className="flex-1"
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="always"
+          >
+            {searchResults.map((item, index) => (
+              <TouchableOpacity
+                key={item.place_id}
+                onPress={() => handleSelectSearchResult(item)}
+                className={`p-4 flex-row items-center ${
+                  index < searchResults.length - 1 ? 'border-b border-gray-200' : ''
+                }`}
+              >
+                <Ionicons name="location-outline" size={20} color="#666" className="mr-3" />
+                <View className="flex-1">
+                  <Text className="text-base font-medium text-gray-800">
+                    {item.display_name.split(',')[0]}
+                  </Text>
+                  <Text className="text-sm text-gray-600 mt-1">
+                    {item.display_name}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
     </GestureHandlerRootView>
   );
 }
