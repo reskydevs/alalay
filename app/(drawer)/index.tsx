@@ -181,7 +181,7 @@ export default function HomeScreen() {
       <BottomSheet
         ref={bottomSheetRef}
         index={0}
-        snapPoints={keyboardVisible ? ["10%", "80%"] : snapPoints}
+        snapPoints={keyboardVisible ? ["10%", "85%"] : snapPoints}
         onChange={handleSheetChanges}
         enableDynamicSizing={false}
         android_keyboardInputMode="adjustResize"
