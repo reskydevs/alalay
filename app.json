@@ -38,5 +38,9 @@
     "experiments": {
       "typedRoutes": true
     }
+    ,
+    "extra": {
+      "MAPTILER_KEY": ""
+    }
   }
 }
