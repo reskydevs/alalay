@@ -1,9 +1,23 @@
 import { Ionicons } from "@expo/vector-icons";
+import Constants from 'expo-constants';
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Text, TouchableOpacity, View } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT, UrlTile } from "react-native-maps";
 
-const TILE_URL = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
+// Read MapTiler key straight from app.json -> expo.extra.MAPTILER_KEY
+const MAPTILER_KEY = (Constants.expoConfig?.extra as any)?.MAPTILER_KEY
+  || (Constants.manifest as any)?.extra?.MAPTILER_KEY
+  || '';
+// Use MapTiler if key present; otherwise fall back to public OSM demo tiles (temporary dev-only)
+const TILE_URL = MAPTILER_KEY
+  ? `https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`
+  : 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+if (!MAPTILER_KEY && __DEV__) {
+  // One-time warning for developers to supply the key locally
+  // eslint-disable-next-line no-console
+  console.warn('[Map] MAPTILER_KEY is blank. Using OSM fallback. Add your key to app.json -> expo.extra.MAPTILER_KEY.');
+}
 
 interface MapSectionProps {
     region: any;
