@@ -113,6 +113,8 @@ PUV Commute Mode uses OpenStreetMap tiles via `react-native-maps`.
 - On web, the map is not available (native-only). You will see a placeholder message instead.
 - On iOS/Android, you can tap on the map to set your destination (a marker will appear).
 
+> Note (temporary workaround): The OSM public demo tile server blocked our app for automated / unidentified usage. We added MapTiler support: if `expo.extra.MAPTILER_KEY` is set in `app.json` the app loads MapTiler tiles; if it is blank, it falls back to OSM demo tiles for development only and logs a warning. Each dev should add the MapTiler key locally (do not commit the real key) to avoid future throttling.
+
 **Troubleshooting:**
 
 - If you see a bundling error about native-only modules on web, this is expected. The app will show a placeholder instead of the map on web.
