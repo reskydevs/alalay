@@ -23,6 +23,8 @@ This is a [React Native with Expo](https://reactnative.dev/docs/environment-setu
 
 ParaPo! is an accessibility-friendly app for Filipino commuters, designed for persons with disabilities (PWDs) such as those who are deaf, have speech or mobility impairments, or experience communication challenges. It offers tap-to-play voice prompts like “Para po!” and “Bayad po, papuntang [location]”, along with visual animations to help users easily interact with drivers and conductors—making public transport more inclusive, safe, and stress-free. More helpful features are also built in, designed with accessibility and everyday commuting needs in mind.
 
+![Draft Plan](./docs/plan.png)
+
 ### Built With
 
 [![React Native](https://img.shields.io/badge/-React%20Native-black?style=flat&logo=react)](https://reactnative.dev/) – Core framework for building native mobile apps.  
