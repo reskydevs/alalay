@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, Dimensions, useWindowDimensions } from "react-native";
@@ -21,9 +22,23 @@ export function useIDCard() {
   const maxScale = 4;
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((uri) => {
-      if (uri) setIdImage(uri);
-    });
+    (async () => {
+      try {
+        const uri = await AsyncStorage.getItem(STORAGE_KEY);
+        if (uri) {
+          const info = await FileSystem.getInfoAsync(uri);
+          if (info.exists) {
+            setIdImage(info.uri);
+          } else {
+            setIdImage(uri);
+          }
+        }
+      } catch {
+        // If file system check fails, fallback silently
+        const uri = await AsyncStorage.getItem(STORAGE_KEY);
+        if (uri) setIdImage(uri);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -53,18 +68,34 @@ export function useIDCard() {
       quality: 1,
     });
     if (!result.canceled && result.assets?.length > 0) {
-      const uri = result.assets[0].uri;
-      setIdImage(uri);
-      await AsyncStorage.setItem(STORAGE_KEY, uri);
+      const sourceUri = result.assets[0].uri;
+      try {
+        const fileExt = sourceUri.split(".").pop()?.split("?")[0] || "jpg";
+        const permanentFileName = `offline_commuter_id_${Date.now()}.${fileExt}`;
+        const permanentPath = `${FileSystem.documentDirectory}${permanentFileName}`;
+
+        await FileSystem.copyAsync({
+          from: sourceUri,
+          to: permanentPath,
+        });
+
+        setIdImage(permanentPath);
+        await AsyncStorage.setItem(STORAGE_KEY, permanentPath);
+      } catch (err) {
+        console.warn("[IDCard] Failed to save to local documentDirectory:", err);
+        setIdImage(sourceUri);
+        await AsyncStorage.setItem(STORAGE_KEY, sourceUri);
+      }
     }
   };
 
   const showPrivacyInfo = () => {
     Alert.alert(
-      "Data Privacy",
-      "Your ID image stays on your phone and is never uploaded to the cloud."
+      "Data Privacy & Offline Storage",
+      "Your PWD, Senior Citizen, or Student ID image is saved securely on your device's permanent offline storage (expo-file-system) and is never uploaded to any server or cloud."
     );
   };
+
   const handleZoomIn = (ref?: React.RefObject<any>) => {
     const zoomRef = ref || imageZoomRef;
     zoomRef.current?.centerOn?.({

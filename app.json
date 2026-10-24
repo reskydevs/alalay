@@ -9,12 +9,24 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.reskydevs.parapo",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "ParaPo! uses your location to calculate PUV fares, find nearby routes, and alert you before your drop-off.",
+        "NSPhotoLibraryUsageDescription": "ParaPo! needs photo library access to store and display your PWD, Senior Citizen, or Student ID card for fare discounts.",
+        "NSUserTrackingUsageDescription": "ParaPo! uses this identifier to provide non-intrusive commute-relevant advertisements and keep fares accessible."
+      }
     },
     "android": {
+      "package": "com.reskydevs.parapo",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDummyKeyForParaPoPhilippinesMapKey00"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true
     },
@@ -31,14 +43,13 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#000000"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
-    ,
+    },
     "extra": {
       "MAPTILER_KEY": ""
     }

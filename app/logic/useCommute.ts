@@ -1,283 +1,316 @@
-import axios from "axios";
+import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
-import { useCallback, useEffect, useState } from "react";
+import * as Speech from "expo-speech";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-interface NominatimResult {
-  place_id: number;
-  lat: string;
-  lon: string;
-  display_name: string;
-  _distance?: number;
+export type CommuteMode = "traditional" | "modern";
+
+export interface FareBreakdown {
+  baseDistanceKm: number;
+  baseFare: number;
+  perKmRate: number;
+  totalDistanceKm: number;
+  succeedingDistanceKm: number;
+  succeedingFare: number;
+  subtotalFare: number;
+  discountAmount: number;
+  totalFare: number;
+  roundedFare: number;
 }
 
-function debounce(func: (...args: any[]) => void, waitFor: number) {
-  let timeout: any;
-  return (...args: any[]): void => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), waitFor);
-  };
+export interface MatrixEntry {
+  km: number;
+  regularTraditional: number;
+  discountTraditional: number;
+  regularModern: number;
+  discountModern: number;
 }
+
+// LTFRB Official Legal Source & Policy Metadata
+export const LTFRB_LEGAL_SOURCE = {
+  orderTitle: "LTFRB Board Resolution No. 2023-016 & Memorandum Circular 2024",
+  policyName: "Official PUJ & PUV Fare Matrix Guide",
+  officialUrl: "https://ltfrb.gov.ph/fare-rates/",
+  lastUpdatedDate: "October 2024 (Effective 2024–2026)",
+  hotline: "1342",
+  dotrActionCenter: "8888",
+  laws: [
+    { code: "RA 9442", beneficiary: "Persons with Disabilities (PWD)", discount: "20% Statutory Discount" },
+    { code: "RA 9994", beneficiary: "Senior Citizens", discount: "20% Statutory Discount" },
+    { code: "RA 11314", beneficiary: "Students", discount: "20% Statutory Discount" },
+  ],
+  traditionalJeep: {
+    baseFare: 13.0,
+    baseDistanceKm: 4.0,
+    perKmRate: 1.8,
+  },
+  modernPUV: {
+    baseFare: 15.0,
+    baseDistanceKm: 4.0,
+    perKmRate: 2.2,
+  },
+};
+
+// LTFRB Official Matrix Generation (Up to 25 km)
+export function getLTFRBMatrix(): MatrixEntry[] {
+  const entries: MatrixEntry[] = [];
+  for (let km = 4; km <= 20; km++) {
+    const succKm = Math.max(0, km - 4);
+    // Traditional: 13 + succKm * 1.80
+    const regTrad = Math.round((13 + succKm * 1.8) * 100) / 100;
+    const discTrad = Math.round(regTrad * 0.8 * 100) / 100;
+
+    // Modern: 15 + succKm * 2.20
+    const regMod = Math.round((15 + succKm * 2.2) * 100) / 100;
+    const discMod = Math.round(regMod * 0.8 * 100) / 100;
+
+    entries.push({
+      km,
+      regularTraditional: regTrad,
+      discountTraditional: discTrad,
+      regularModern: regMod,
+      discountModern: discMod,
+    });
+  }
+  return entries;
+}
+
+// Manila Urban Road Detour Multiplier (real road distance vs straight-line)
+const ROAD_DETOUR_FACTOR = 1.28;
+
+export const getHaversineDistanceKm = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+) => {
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+};
 
 export default function usePUVController() {
-  const [region, setRegion] = useState({
-    latitude: 14.5995,
-    longitude: 120.9842,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
-  });
-
   const [currentLocation, setCurrentLocation] =
     useState<Location.LocationObjectCoords | null>(null);
-  const [destination, setDestination] = useState<{
+  const [destinationCoords, setDestinationCoords] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
 
-  const [fromAddress, setFromAddress] = useState("Detecting...");
-  const [toAddress, setToAddress] = useState("Tap on map to set destination");
+  const [fromAddress, setFromAddress] = useState("Current Location (GPS)");
+  const [toAddress, setToAddress] = useState("");
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  // Commuter Fare Configuration
+  const [commuteMode, setCommuteMode] = useState<CommuteMode>("traditional");
+  const [hasDiscount, setHasDiscount] = useState<boolean>(false);
+  const [selectedDistanceKm, setSelectedDistanceKm] = useState<number>(4.0);
+  const [isGpsDistanceActive, setIsGpsDistanceActive] = useState<boolean>(false);
 
-  const [routeCoords, setRouteCoords] = useState<
-    Array<{ latitude: number; longitude: number }>
-  >([]);
-  const [routeLoading, setRouteLoading] = useState(false);
-  const [routeError, setRouteError] = useState<string | null>(null);
+  // Proximity Alert State
+  const [proximityAlertStatus, setProximityAlertStatus] = useState<
+    "idle" | "approaching_350m" | "arriving_100m"
+  >("idle");
+  const alert350Triggered = useRef(false);
+  const alert100Triggered = useRef(false);
 
+  // Initialize live GPS tracking for proximity and drop-off alerts
   useEffect(() => {
+    let subscriber: Location.LocationSubscription | null = null;
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        // Faster location acquisition with optimized settings
-        const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced, // Good balance of speed vs accuracy
-          timeInterval: 1000, // Check every 1 second
-          distanceInterval: 10, // Update when moved 10 meters
-        });
-        setCurrentLocation(location.coords);
-        setRegion((prev) => ({
-          ...prev,
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        }));
-      } else {
-        setFromAddress("Location permission denied.");
-        setRegion({
-          latitude: 12.8797,
-          longitude: 121.774,
-          latitudeDelta: 15,
-          longitudeDelta: 15,
-        });
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          const initial = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          setCurrentLocation(initial.coords);
+
+          subscriber = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.High,
+              timeInterval: 2500,
+              distanceInterval: 10,
+            },
+            (loc) => {
+              setCurrentLocation(loc.coords);
+            }
+          );
+        } else {
+          setFromAddress("GPS permission required for proximity alerts.");
+        }
+      } catch (err) {
+        console.warn("[Location] Could not acquire GPS position:", err);
       }
     })();
+
+    return () => {
+      subscriber?.remove();
+    };
   }, []);
 
+  // Update origin address display when current location changes
   useEffect(() => {
     if (currentLocation) {
       Location.reverseGeocodeAsync(currentLocation)
         .then((res) => {
-          setFromAddress(formatAddress(res[0]));
+          if (res?.[0]) setFromAddress(formatAddress(res[0]));
         })
-        .catch(() => {
-          setFromAddress("Error geocoding origin");
-        });
+        .catch(() => {});
     }
   }, [currentLocation]);
 
+  // Compute live GPS distance if destination is set
+  const liveGpsDistanceKm = useMemo(() => {
+    if (!currentLocation || !destinationCoords) return null;
+    const directKm = getHaversineDistanceKm(
+      currentLocation.latitude,
+      currentLocation.longitude,
+      destinationCoords.latitude,
+      destinationCoords.longitude
+    );
+    // Apply road detour factor for Manila urban street network
+    return Math.round(directKm * ROAD_DETOUR_FACTOR * 10) / 10;
+  }, [currentLocation, destinationCoords]);
+
+  // Effective distance used in calculation
+  const effectiveDistanceKm = useMemo(() => {
+    if (isGpsDistanceActive && liveGpsDistanceKm !== null) {
+      return liveGpsDistanceKm;
+    }
+    return selectedDistanceKm;
+  }, [isGpsDistanceActive, liveGpsDistanceKm, selectedDistanceKm]);
+
+  // Proximity meters for drop-off alert
+  const remainingMeters = useMemo(() => {
+    if (!currentLocation || !destinationCoords) return null;
+    const directKm = getHaversineDistanceKm(
+      currentLocation.latitude,
+      currentLocation.longitude,
+      destinationCoords.latitude,
+      destinationCoords.longitude
+    );
+    return Math.round(directKm * 1000);
+  }, [currentLocation, destinationCoords]);
+
+  // Dynamic Official LTFRB Fare Calculation
+  // Traditional Jeepney: ₱13 base (first 4.0 km) / ₱1.80 per succeeding km
+  // Modern PUV: ₱15 base (first 4.0 km) / ₱2.20 per succeeding km
+  // 20% discount for PWD, Senior Citizens, and Students (RA 9442, RA 9994, RA 11314)
+  const fareBreakdown = useMemo<FareBreakdown>(() => {
+    const baseDistanceKm = 4.0;
+    const baseFare = commuteMode === "traditional" ? 13.0 : 15.0;
+    const perKmRate = commuteMode === "traditional" ? 1.8 : 2.2;
+
+    const succeedingDistanceKm = Math.max(0, effectiveDistanceKm - baseDistanceKm);
+    const succeedingFare = Math.round(succeedingDistanceKm * perKmRate * 100) / 100;
+    const subtotalFare = Math.round((baseFare + succeedingFare) * 100) / 100;
+
+    const discountAmount = hasDiscount
+      ? Math.round(subtotalFare * 0.2 * 100) / 100
+      : 0;
+    const totalFare = Math.round((subtotalFare - discountAmount) * 100) / 100;
+    const roundedFare = Math.round(totalFare);
+
+    return {
+      baseDistanceKm,
+      baseFare,
+      perKmRate,
+      totalDistanceKm: effectiveDistanceKm,
+      succeedingDistanceKm,
+      succeedingFare,
+      subtotalFare,
+      discountAmount,
+      totalFare,
+      roundedFare,
+    };
+  }, [effectiveDistanceKm, commuteMode, hasDiscount]);
+
+  // Proximity Alerts at 350m and 100m
   useEffect(() => {
-    if (destination) {
-      Location.reverseGeocodeAsync(destination)
-        .then((res) => {
-          setToAddress(formatAddress(res[0]));
-        })
-        .catch(() => {
-          setToAddress("Error geocoding destination");
-        });
-    } else {
-      setToAddress("Tap on map to set destination");
-    }
-  }, [destination]);
+    if (remainingMeters === null) return;
 
-  const fuzzyMatch = (str: string, query: string) => {
-    const q = query.replace(/\s+/g, " ").trim().toLowerCase();
-    const s = str.toLowerCase();
-    return q
-      .split(" ")
-      .every(
-        (word) =>
-          word.length < 2 ||
-          s.includes(word) ||
-          s
-            .split(" ")
-            .some((token) => token.startsWith(word) || word.startsWith(token))
-      );
-  };
+    if (remainingMeters <= 100 && !alert100Triggered.current) {
+      alert100Triggered.current = true;
+      setProximityAlertStatus("arriving_100m");
 
-  const getDistanceKm = (
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ) => {
-    const toRad = (v: number) => (v * Math.PI) / 180;
-    const R = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-  };
-
-  const performSearch = async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      setSearchError(null);
-      setSearchLoading(false);
-      return;
-    }
-    setSearchLoading(true);
-    setSearchError(null);
-
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-        query
-      )}&addressdetails=1&limit=15&countrycodes=ph&accept-language=en`;
-      const response = await axios.get<NominatimResult[]>(url, {
-        headers: { "User-Agent": "ParaPo/1.0 ralphcajipe@gmail.com" },
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      Speech.speak("Para po! Bababa na po dito sa tabi. Isang daang metro na lang po.", {
+        language: "fil-PH",
+        rate: 0.95,
+        pitch: 1.1,
       });
-      let results = response.data || [];
+    } else if (
+      remainingMeters <= 350 &&
+      remainingMeters > 100 &&
+      !alert350Triggered.current
+    ) {
+      alert350Triggered.current = true;
+      setProximityAlertStatus("approaching_350m");
 
-      if (currentLocation && results.length > 0) {
-        const userLat = currentLocation.latitude;
-        const userLon = currentLocation.longitude;
-        const lowerQuery = query.toLowerCase();
-
-        results = results.map((r) => {
-          const distance = getDistanceKm(
-            userLat,
-            userLon,
-            parseFloat(r.lat),
-            parseFloat(r.lon)
-          );
-          const fuzzy = fuzzyMatch(r.display_name, lowerQuery) ? -30 : 0;
-          const nameMatch = r.display_name.toLowerCase().includes(lowerQuery)
-            ? -20
-            : 0;
-          return { ...r, _distance: distance + fuzzy + nameMatch };
-        });
-
-        const fuzzyResults = results.filter((r) =>
-          fuzzyMatch(r.display_name, lowerQuery)
-        );
-        const toShow = fuzzyResults.length > 0 ? fuzzyResults : results;
-        toShow.sort((a, b) => {
-          if (a._distance !== undefined && b._distance !== undefined)
-            return a._distance - b._distance;
-          return a.display_name.localeCompare(b.display_name);
-        });
-
-        setSearchResults(toShow.slice(0, 7));
-      } else {
-        setSearchResults(results.slice(0, 7));
-      }
-
-      if (results.length === 0) setSearchError("No results found.");
-    } catch {
-      setSearchError("Failed to fetch search results.");
-      setSearchResults([]);
-    } finally {
-      setSearchLoading(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      Speech.speak("Malapit na po sa inyong babaan. Tatlong daan at limampung metro na lang po.", {
+        language: "fil-PH",
+        rate: 0.95,
+        pitch: 1.0,
+      });
     }
-  };
+  }, [remainingMeters]);
 
-  const debouncedSearch = useCallback(debounce(performSearch, 500), [
-    currentLocation,
-  ]);
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    if (query.trim().length > 2) {
-      debouncedSearch(query);
+  const testProximityAlert = (type: 350 | 100) => {
+    if (type === 100) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      Speech.speak("Para po! Bababa na po dito sa tabi. Isang daang metro na lang po.", {
+        language: "fil-PH",
+        rate: 0.95,
+        pitch: 1.1,
+      });
     } else {
-      setSearchResults([]);
-      setSearchError(null);
-      if (query.trim().length === 0) setSearchLoading(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      Speech.speak("Malapit na po sa inyong babaan. Tatlong daan at limampung metro na lang po.", {
+        language: "fil-PH",
+        rate: 0.95,
+        pitch: 1.0,
+      });
     }
   };
 
-  const handleSelectSearchResult = (item: NominatimResult) => {
-    const lat = parseFloat(item.lat);
-    const lon = parseFloat(item.lon);
-
-    setDestination({ latitude: lat, longitude: lon });
-    setRegion((prev) => ({ ...prev, latitude: lat, longitude: lon }));
-
-    const fullAddress = item.display_name;
-    setSearchQuery(fullAddress);
-    setToAddress(fullAddress);
-
-    setSearchResults([]);
+  const adjustDistance = (delta: number) => {
+    setIsGpsDistanceActive(false);
+    setSelectedDistanceKm((prev) => Math.max(1.0, Math.round((prev + delta) * 10) / 10));
   };
 
-  const handleMapPress = (e: {
-    nativeEvent: { coordinate: { latitude: number; longitude: number } };
-  }) => {
-    setDestination(e.nativeEvent.coordinate);
-    setSearchResults([]);
-    setSearchError(null);
-  };
-
-  const fetchRoute = async () => {
-    if (!currentLocation || !destination) return;
-    setRouteLoading(true);
-    setRouteError(null);
-    setRouteCoords([]);
-    try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${currentLocation.longitude},${currentLocation.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=geojson`;
-      const response = await axios.get(url);
-      const data = response.data;
-      if (data?.routes?.length > 0) {
-        const coords = data.routes[0].geometry.coordinates.map(
-          ([lon, lat]: [number, number]) => ({
-            latitude: lat,
-            longitude: lon,
-          })
-        );
-        setRouteCoords(coords);
-      } else {
-        setRouteError("No route found.");
-      }
-    } catch {
-      setRouteError("Failed to fetch route.");
-    } finally {
-      setRouteLoading(false);
-    }
+  const setPresetDistance = (km: number) => {
+    setIsGpsDistanceActive(false);
+    setSelectedDistanceKm(km);
   };
 
   return {
-    region,
-    setRegion,
     currentLocation,
-    destination,
-    setDestination,
+    destinationCoords,
+    setDestinationCoords,
     fromAddress,
     toAddress,
-    searchQuery,
-    setSearchQuery,
-    handleSearch,
-    handleSelectSearchResult,
-    handleMapPress,
-    searchResults,
-    searchLoading,
-    searchError,
-    routeCoords,
-    fetchRoute,
-    routeLoading,
-    routeError,
+    setToAddress,
+    commuteMode,
+    setCommuteMode,
+    hasDiscount,
+    setHasDiscount,
+    selectedDistanceKm: effectiveDistanceKm,
+    adjustDistance,
+    setPresetDistance,
+    isGpsDistanceActive,
+    setIsGpsDistanceActive,
+    liveGpsDistanceKm,
+    remainingMeters,
+    fareBreakdown,
+    proximityAlertStatus,
+    testProximityAlert,
+    ltfrbMatrix: getLTFRBMatrix(),
   };
 }
 
@@ -289,7 +322,6 @@ function formatAddress(addr: Partial<Location.LocationGeocodedAddress>) {
     city,
     subregion,
     region,
-    country,
     postalCode,
   } = addr;
   const parts = [
@@ -299,7 +331,6 @@ function formatAddress(addr: Partial<Location.LocationGeocodedAddress>) {
     subregion,
     region,
     postalCode,
-    country,
   ];
-  return parts.filter(Boolean).join(", ") || "Unknown location";
+  return parts.filter(Boolean).join(", ") || "Metro Manila, Philippines";
 }
