@@ -15,17 +15,22 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { useVoicePrompts } from "../logic/useVoicePrompts";
 
 const FLASHCARD_PRESETS = [
-  { english: "STOP HERE", phrase: "PARA PO!", subtext: "Drop-off at the nearest curbside", speech: "Para po! Bababa na po ako sa tabi." },
-  { english: "PASSING FARE", phrase: "BAYAD PO!", subtext: "Please pass payment to the driver", speech: "Bayad po. Pakiabot po sa driver." },
-  { english: "SAFE DROP-OFF", phrase: "SA TABI LANG PO!", subtext: "Pull over at the corner or stop", speech: "Dito na lang po sa kanto o tawiran." },
-  { english: "20% DISCOUNT", phrase: "PWD / SENIOR PO!", subtext: "Statutory Republic Act 9442 & 9994", speech: "May 20% discount po ako. Bayad po." },
-  { english: "CHANGE PLEASE", phrase: "SUKLI PO!", subtext: "Please pass back my change", speech: "Pakiabot po ang sukli ko, salamat." },
+  { english: "STOP HERE", phrase: "PARA PO!", subtext: "Drop-off at the nearest curbside", speech: "Para po! Bababa na po ako sa tabi. Maraming salamat po." },
+  { english: "PASSING FARE", phrase: "BAYAD PO!", subtext: "Please pass payment to the driver", speech: "Bayad po! Pakiabot po sa driver. Maraming salamat po." },
+  { english: "SAFE DROP-OFF", phrase: "SA TABI LANG PO!", subtext: "Pull over at the corner or stop", speech: "Dito na lang po sa may tabi o tawiran. Salamat po." },
+  { english: "20% DISCOUNT", phrase: "PWD / SENIOR PO!", subtext: "Statutory Republic Act 9442 & 9994", speech: "May legal discount po ako bilang P-W-D o Senior Citizen. Bayad po." },
+  { english: "CHANGE PLEASE", phrase: "SUKLI PO!", subtext: "Please pass back my change", speech: "Pakiabot po ang aking sukli. Maraming salamat po." },
 ];
 
 export default function VoicePromptsTab() {
   const {
     customPrompt,
     setCustomPrompt,
+    isSpeaking,
+    voiceGender,
+    setVoiceGender,
+    filipinoVoicesCount,
+    openTtsSettings,
     speak,
     handleCustomPromptPlay,
   } = useVoicePrompts();
@@ -58,11 +63,72 @@ export default function VoicePromptsTab() {
             Flashcards & Voice
           </Text>
           <Text className="text-[#8E8E93] text-xs font-medium mt-0.5">
-            Non-Verbal Visual Cards & Speech Synthesizer
+            Neural Human Speech Engine • Visual Beacon Flashcards
           </Text>
         </View>
 
         <View className="px-5 pt-4">
+          {/* TESLA VOICE MODEL TELEMETRY CARD */}
+          <View className="bg-[#121214] rounded-3xl p-4 border border-[#27272A] shadow-xl mb-5">
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center">
+                <MaterialCommunityIcons name="account-voice" size={18} color="#FFFFFF" />
+                <Text className="text-white text-xs font-bold uppercase tracking-wider ml-2">
+                  Human Voice Model
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={openTtsSettings}
+                className="bg-[#1C1C1E] px-2.5 py-1 rounded-full border border-[#27272A] flex-row items-center"
+              >
+                <View
+                  className={`w-2 h-2 rounded-full mr-1.5 ${
+                    filipinoVoicesCount > 0 ? "bg-[#10B981]" : "bg-[#F59E0B]"
+                  }`}
+                />
+                <Text className="text-[#A1A1AA] text-[10px] font-semibold">
+                  {filipinoVoicesCount > 0 ? "Neural Voice Ready" : "TTS Settings ↗"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Gender Toggle: Maria (Female) vs Juan (Male) */}
+            <View className="flex-row bg-[#1C1C1E] p-1 rounded-2xl border border-[#27272A]">
+              <TouchableOpacity
+                onPress={() => setVoiceGender("female")}
+                activeOpacity={0.7}
+                className={`flex-1 py-2.5 rounded-xl items-center ${
+                  voiceGender === "female" ? "bg-white" : "bg-transparent"
+                }`}
+              >
+                <Text
+                  className={`text-xs font-bold uppercase tracking-wider ${
+                    voiceGender === "female" ? "text-black" : "text-[#71717A]"
+                  }`}
+                >
+                  👩 Maria (Natural Female)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setVoiceGender("male")}
+                activeOpacity={0.7}
+                className={`flex-1 py-2.5 rounded-xl items-center ${
+                  voiceGender === "male" ? "bg-white" : "bg-transparent"
+                }`}
+              >
+                <Text
+                  className={`text-xs font-bold uppercase tracking-wider ${
+                    voiceGender === "male" ? "text-black" : "text-[#71717A]"
+                  }`}
+                >
+                  👨 Juan (Natural Male)
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* Hero Flashcard Launcher */}
           <TouchableOpacity
             onPress={() => {
@@ -96,7 +162,7 @@ export default function VoicePromptsTab() {
 
           {/* Audio Commuter Prompts */}
           <Text className="text-[#8E8E93] text-xs font-bold uppercase tracking-wider mb-3">
-            Audio Commuter Prompts (Tap to Speak)
+            Natural Audio Prompts (Tap to Speak)
           </Text>
 
           <View className="bg-[#121214] rounded-3xl border border-[#27272A] overflow-hidden mb-6">
@@ -142,7 +208,7 @@ export default function VoicePromptsTab() {
             <TextInput
               value={customPrompt}
               onChangeText={setCustomPrompt}
-              placeholder="Type any message to speak aloud..."
+              placeholder="Type any message to speak aloud in natural Filipino..."
               placeholderTextColor="#71717A"
               className="bg-[#1C1C1E] text-white p-4 rounded-2xl text-sm border border-[#27272A] min-h-[90px] mb-4"
               multiline
