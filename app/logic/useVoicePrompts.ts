@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import naturalVoiceService, { NATURAL_COMMUTER_PHRASES } from "../services/naturalVoiceService";
+import naturalVoiceService, {
+  VOICE_MODELS,
+  VoiceModelId,
+  VoiceModelProfile,
+} from "../services/naturalVoiceService";
 
 export const DEFAULT_PROMPTS = [
   "Para po! Bababa na po ako sa tabi. Salamat po.",
@@ -12,19 +16,17 @@ export const DEFAULT_PROMPTS = [
 export function useVoicePrompts() {
   const [customPrompt, setCustomPrompt] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [voiceGender, setVoiceGenderState] = useState<"female" | "male" | "auto">("female");
-  const [filipinoVoicesCount, setFilipinoVoicesCount] = useState<number>(0);
+  const [selectedModel, setSelectedModel] = useState<VoiceModelProfile>(VOICE_MODELS[0]);
 
   useEffect(() => {
     naturalVoiceService.initialize().then(() => {
-      setFilipinoVoicesCount(naturalVoiceService.getFilipinoVoicesCount());
-      setVoiceGenderState(naturalVoiceService.getGender());
+      setSelectedModel(naturalVoiceService.getVoiceModel());
     });
   }, []);
 
-  const setVoiceGender = (gender: "female" | "male" | "auto") => {
-    naturalVoiceService.setGender(gender);
-    setVoiceGenderState(gender);
+  const selectVoiceModel = (id: VoiceModelId) => {
+    naturalVoiceService.setVoiceModel(id);
+    setSelectedModel(naturalVoiceService.getVoiceModel());
   };
 
   const speak = (text: string) => {
@@ -45,13 +47,12 @@ export function useVoicePrompts() {
 
   return {
     DEFAULT_PROMPTS,
-    NATURAL_COMMUTER_PHRASES,
+    VOICE_MODELS,
+    selectedModel,
+    selectVoiceModel,
     customPrompt,
     setCustomPrompt,
     isSpeaking,
-    voiceGender,
-    setVoiceGender,
-    filipinoVoicesCount,
     openTtsSettings: () => naturalVoiceService.openTtsSettings(),
     speak,
     handleCustomPromptPlay,

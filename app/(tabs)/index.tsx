@@ -1,9 +1,9 @@
+import usePUVController from "@/app/logic/useCommute";
 import naturalVoiceService from "@/app/services/naturalVoiceService";
-import usePUVController, { LTFRB_LEGAL_SOURCE } from "@/app/logic/useCommute";
+import FlashcardScene from "@/components/FlashcardScene";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import * as Speech from "expo-speech";
 import * as WebBrowser from "expo-web-browser";
 import React, { useRef, useState } from "react";
 import {
@@ -12,7 +12,6 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Platform,
   ScrollView,
   StatusBar,
   Switch,
@@ -22,79 +21,60 @@ import {
 } from "react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH - 32;
 
 interface FlashcardData {
   id: string;
-  badge: string;
-  title: string;
-  philippinePhrase: string;
+  label: string;
+  phrase: string;
   subtext: string;
   speechText: string;
-  accentColor: string;
-  icon: string;
+  accent: string;
 }
 
 const FLASHCARD_SLIDES: FlashcardData[] = [
   {
     id: "stop",
-    badge: "EMERGENCY / STOP",
-    title: "STOP HERE",
-    philippinePhrase: "PARA PO!",
-    subtext: "Unload safely at the nearest curbside or corner",
+    label: "STOP HERE",
+    phrase: "PARA PO!",
+    subtext: "Unloading at the curb",
     speechText: "Para po! Bababa na po ako sa tabi. Salamat po.",
-    accentColor: "#E82127",
-    icon: "hand-wave",
+    accent: "#E82127",
   },
   {
     id: "payment",
-    badge: "FARE TRANSACTION",
-    title: "PASSING FARE",
-    philippinePhrase: "BAYAD PO!",
-    subtext: "Please pass my payment to the driver or conductor",
+    label: "PASSING FARE",
+    phrase: "BAYAD PO!",
+    subtext: "Please pass to the driver",
     speechText: "Bayad po. Pakiabot po sa driver. Salamat po.",
-    accentColor: "#FFFFFF",
-    icon: "cash-multiple",
+    accent: "#2563EB",
   },
   {
     id: "discount",
-    badge: "STATUTORY BENEFIT",
-    title: "20% DISCOUNT",
-    philippinePhrase: "PWD / SENIOR PO!",
-    subtext: "Legal discount under Republic Act 9442 & RA 9994",
+    label: "20% DISCOUNT",
+    phrase: "PWD / SENIOR",
+    subtext: "Statutory 20% discount",
     speechText: "May discount po ako bilang PWD o Senior Citizen. Bayad po.",
-    accentColor: "#FFFFFF",
-    icon: "badge-account-horizontal",
+    accent: "#16A34A",
   },
   {
     id: "change",
-    badge: "FARE CHANGE",
-    title: "CHANGE PLEASE",
-    philippinePhrase: "SUKLI PO!",
-    subtext: "Please pass back my change when available, thank you",
+    label: "CHANGE PLEASE",
+    phrase: "SUKLI PO!",
+    subtext: "Waiting for fare change",
     speechText: "Pakiabot po ang sukli ko. Maraming salamat po.",
-    accentColor: "#FFFFFF",
-    icon: "hand-coin",
+    accent: "#D97706",
   },
   {
     id: "curbside",
-    badge: "SAFE DROP-OFF",
-    title: "PULL OVER",
-    philippinePhrase: "SA TABI LANG PO!",
-    subtext: "Drop-off at the pedestrian crossing or designated stop",
+    label: "PULL OVER",
+    phrase: "SA TABI LANG!",
+    subtext: "Drop off at the corner",
     speechText: "Dito na lang po sa tabi o tawiran. Salamat po.",
-    accentColor: "#FFFFFF",
-    icon: "bus-stop",
+    accent: "#E82127",
   },
 ];
 
-const DISTANCE_PRESETS = [
-  { label: "4 km", sub: "Base Fare", km: 4.0 },
-  { label: "6 km", sub: "Barangay", km: 6.0 },
-  { label: "8 km", sub: "Commercial", km: 8.0 },
-  { label: "10 km", sub: "City Center", km: 10.0 },
-  { label: "15 km", sub: "Express", km: 15.0 },
-];
+const DISTANCE_PRESETS = [4, 6, 8, 10, 15];
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -114,16 +94,14 @@ export default function HomeScreen() {
   const [fullscreenCard, setFullscreenCard] = useState<FlashcardData | null>(null);
   const [showFareModal, setShowFareModal] = useState(false);
   const [showMatrixModal, setShowMatrixModal] = useState(false);
-  const [showTrustInfoModal, setShowTrustInfoModal] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
-
   const currentSlide = FLASHCARD_SLIDES[activeSlideIndex] || FLASHCARD_SLIDES[0];
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(offsetX / (SCREEN_WIDTH - 24));
+    const index = Math.round(offsetX / SCREEN_WIDTH);
     if (index >= 0 && index < FLASHCARD_SLIDES.length && index !== activeSlideIndex) {
       setActiveSlideIndex(index);
     }
@@ -147,7 +125,6 @@ export default function HomeScreen() {
 
   const handleOpenLtfrbWebsite = async () => {
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       await WebBrowser.openBrowserAsync("https://ltfrb.gov.ph/fare-rates/");
     } catch {
       Linking.openURL("https://ltfrb.gov.ph/fare-rates/").catch(() => {});
@@ -155,51 +132,39 @@ export default function HomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#000000] pt-10">
+    <View className="flex-1 bg-[#000000] pt-12">
       <StatusBar barStyle="light-content" />
 
-      {/* Tesla Telemetry Header */}
-      <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
+      {/* Minimalist Tesla Header — Large Text, Zero Clutter */}
+      <View className="px-6 pb-2 flex-row items-center justify-between">
         <View>
-          <Text className="text-white font-extrabold text-2xl tracking-tight">
+          <Text className="text-white font-bold text-3xl tracking-tight">
             ParaPo!
           </Text>
-          <View className="flex-row items-center mt-1">
-            <View className="w-2 h-2 rounded-full bg-[#10B981] mr-2" />
-            <Text className="text-[#8E8E93] text-xs font-medium tracking-wide">
-              Commuter Assist • Live GPS Ready
-            </Text>
-          </View>
+          <Text className="text-[#8E8E93] text-sm font-medium mt-0.5">
+            Ready
+          </Text>
         </View>
 
         <TouchableOpacity
-          onPress={handleOpenLtfrbWebsite}
-          activeOpacity={0.7}
-          className="flex-row items-center bg-[#18181B] px-3 py-1.5 rounded-full border border-[#27272A]"
+          onPress={() => handleSpeak(currentSlide.speechText)}
+          activeOpacity={0.6}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <MaterialCommunityIcons name="shield-check" size={14} color="#FFFFFF" />
-          <Text className="text-[#A1A1AA] text-xs font-semibold ml-1.5">
-            LTFRB Portal ↗
-          </Text>
+          <Ionicons
+            name={isSpeaking ? "volume-high" : "volume-medium-outline"}
+            size={28}
+            color="#FFFFFF"
+          />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 48 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
       >
-        {/* HERO SECTION: SWIPEABLE FULL-SCREEN FLASHCARD CAROUSEL */}
-        <View className="mt-4">
-          <View className="px-5 flex-row items-center justify-between mb-3">
-            <Text className="text-[#8E8E93] text-xs font-bold uppercase tracking-wider">
-              Visual Flashcard • Slide Left / Right
-            </Text>
-            <Text className="text-[#71717A] text-xs font-semibold">
-              {activeSlideIndex + 1} of {FLASHCARD_SLIDES.length}
-            </Text>
-          </View>
-
-          {/* Swipeable Horizontal Paging ScrollView */}
+        {/* HERO: EDGE-TO-EDGE SWIPEABLE FLASHCARDS (NO NESTED BOXES) */}
+        <View className="mt-2">
           <ScrollView
             ref={scrollRef}
             horizontal
@@ -207,261 +172,174 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             onScroll={handleScroll}
             scrollEventThrottle={16}
-            contentContainerStyle={{ paddingHorizontal: 16 }}
-            snapToInterval={SCREEN_WIDTH - 16}
             decelerationRate="fast"
           >
-            {FLASHCARD_SLIDES.map((slide, index) => {
-              const isAlert = slide.id === "stop";
-              return (
-                <View
-                  key={slide.id}
-                  style={{ width: SCREEN_WIDTH - 32, marginRight: 16 }}
-                  className="bg-[#121214] rounded-3xl p-6 border border-[#27272A] justify-between shadow-2xl"
-                >
-                  {/* Top Badge & Audio Status */}
-                  <View className="flex-row items-center justify-between mb-4">
-                    <View
-                      className={`px-3 py-1 rounded-full ${
-                        isAlert ? "bg-[#E82127]/20 border border-[#E82127]/40" : "bg-[#27272A]"
-                      }`}
-                    >
-                      <Text
-                        className={`text-[11px] font-bold tracking-wider ${
-                          isAlert ? "text-[#E82127]" : "text-[#A1A1AA]"
-                        }`}
-                      >
-                        {slide.badge}
-                      </Text>
-                    </View>
+            {FLASHCARD_SLIDES.map((slide) => (
+              <TouchableOpacity
+                key={slide.id}
+                activeOpacity={0.9}
+                onPress={() => handleOpenFullscreen(slide)}
+                style={{ width: SCREEN_WIDTH }}
+                className="px-6 py-8 justify-center items-center"
+              >
+                <FlashcardScene accentColor={slide.accent} />
 
-                    <TouchableOpacity
-                      onPress={() => handleSpeak(slide.speechText)}
-                      className="w-10 h-10 rounded-full bg-[#1C1C1E] items-center justify-center border border-[#27272A]"
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons
-                        name={isSpeaking && activeSlideIndex === index ? "volume-high" : "volume-medium-outline"}
-                        size={20}
-                        color="#FFFFFF"
-                      />
-                    </TouchableOpacity>
-                  </View>
+                <Text className="text-[#8E8E93] text-base font-bold uppercase tracking-widest mt-4">
+                  {slide.label}
+                </Text>
 
-                  {/* Main Large Visual Text (Optimized for Distance & Low Vision) */}
-                  <TouchableOpacity
-                    onPress={() => handleOpenFullscreen(slide)}
-                    activeOpacity={0.9}
-                    className="my-3"
-                  >
-                    <Text className="text-[#8E8E93] text-sm font-semibold uppercase tracking-wider mb-1">
-                      {slide.title}
-                    </Text>
-                    <Text
-                      className="text-4xl font-black tracking-tight"
-                      style={{ color: isAlert ? "#FFFFFF" : "#FFFFFF" }}
-                    >
-                      {slide.philippinePhrase}
-                    </Text>
-                    <Text className="text-[#A1A1AA] text-sm font-medium mt-2 leading-5">
-                      {slide.subtext}
-                    </Text>
-                  </TouchableOpacity>
+                <Text className="text-white font-black text-5xl tracking-tight text-center mt-1">
+                  {slide.phrase}
+                </Text>
 
-                  {/* 1-Tap Action Buttons on Card */}
-                  <View className="flex-row items-center gap-3 pt-4 border-t border-[#1C1C1E] mt-2">
-                    <TouchableOpacity
-                      onPress={() => handleOpenFullscreen(slide)}
-                      activeOpacity={0.8}
-                      className="flex-1 bg-[#FFFFFF] py-3.5 rounded-2xl items-center justify-center flex-row"
-                    >
-                      <Ionicons name="expand" size={16} color="#000000" />
-                      <Text className="text-[#000000] font-black text-xs uppercase tracking-wider ml-2">
-                        Display Fullscreen
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => handleSpeak(slide.speechText)}
-                      activeOpacity={0.8}
-                      className="flex-1 bg-[#1C1C1E] py-3.5 rounded-2xl items-center justify-center flex-row border border-[#27272A]"
-                    >
-                      <Ionicons name="volume-high" size={16} color="#FFFFFF" />
-                      <Text className="text-white font-bold text-xs uppercase tracking-wider ml-2">
-                        Speak Aloud
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              );
-            })}
+                <Text className="text-[#A1A1AA] text-lg font-medium text-center mt-2">
+                  {slide.subtext}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
 
-          {/* Tesla-Style Carousel Paging Dots Indicator */}
-          <View className="flex-row justify-center items-center mt-3 gap-1.5">
+          {/* Minimalist Paging Dots */}
+          <View className="flex-row justify-center items-center mt-1 gap-2">
             {FLASHCARD_SLIDES.map((_, i) => (
               <View
                 key={i}
-                className={`h-1.5 rounded-full transition-all ${
-                  activeSlideIndex === i ? "w-6 bg-[#FFFFFF]" : "w-1.5 bg-[#3F3F46]"
+                className={`h-2 rounded-full ${
+                  activeSlideIndex === i ? "w-7 bg-white" : "w-2 bg-[#3F3F46]"
                 }`}
               />
             ))}
           </View>
         </View>
 
-        {/* QUICK CONTROL BAR (Modeled directly on Tesla Quick Action Row: Lock, Fan, Lightning, Vent) */}
-        <View className="px-5 mt-5">
-          <View className="bg-[#121214] rounded-2xl p-3 border border-[#27272A] flex-row justify-around items-center">
-            <TouchableOpacity
-              onPress={() => handleSpeak(currentSlide.speechText)}
-              activeOpacity={0.7}
-              className="items-center justify-center p-2"
-            >
-              <View className="w-12 h-12 rounded-full bg-[#1C1C1E] items-center justify-center mb-1 border border-[#27272A]">
-                <Ionicons name="volume-medium" size={22} color="#FFFFFF" />
-              </View>
-              <Text className="text-[#8E8E93] text-[11px] font-semibold">Speak</Text>
-            </TouchableOpacity>
+        {/* TESLA FRAMELESS ICON BAR (Pure Icons — No Rectangular or Circular Button Boxes) */}
+        <View className="flex-row justify-around items-center px-8 py-7 mt-2">
+          <TouchableOpacity
+            onPress={() => handleSpeak(currentSlide.speechText)}
+            activeOpacity={0.6}
+            className="items-center"
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Ionicons
+              name={isSpeaking ? "volume-high" : "volume-medium-outline"}
+              size={30}
+              color="#FFFFFF"
+            />
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => handleOpenFullscreen(currentSlide)}
-              activeOpacity={0.7}
-              className="items-center justify-center p-2"
-            >
-              <View className="w-12 h-12 rounded-full bg-[#1C1C1E] items-center justify-center mb-1 border border-[#27272A]">
-                <Ionicons name="scan-outline" size={22} color="#FFFFFF" />
-              </View>
-              <Text className="text-[#8E8E93] text-[11px] font-semibold">Fullscreen</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleOpenFullscreen(currentSlide)}
+            activeOpacity={0.6}
+            className="items-center"
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Ionicons name="expand-outline" size={30} color="#FFFFFF" />
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/IDCardTab")}
-              activeOpacity={0.7}
-              className="items-center justify-center p-2"
-            >
-              <View className="w-12 h-12 rounded-full bg-[#1C1C1E] items-center justify-center mb-1 border border-[#27272A]">
-                <Ionicons name="shield-checkmark-outline" size={22} color="#FFFFFF" />
-              </View>
-              <Text className="text-[#8E8E93] text-[11px] font-semibold">ID Vault</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/IDCardTab")}
+            activeOpacity={0.6}
+            className="items-center"
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Ionicons name="card-outline" size={30} color="#FFFFFF" />
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => {
-                const stopCard = FLASHCARD_SLIDES[0];
-                handleOpenFullscreen(stopCard);
-                handleSpeak(stopCard.speechText);
-              }}
-              activeOpacity={0.7}
-              className="items-center justify-center p-2"
-            >
-              <View className="w-12 h-12 rounded-full bg-[#E82127]/20 items-center justify-center mb-1 border border-[#E82127]/50">
-                <Ionicons name="hand-right" size={22} color="#E82127" />
-              </View>
-              <Text className="text-[#E82127] text-[11px] font-bold">Stop Alert</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => {
+              const stopCard = FLASHCARD_SLIDES[0];
+              handleOpenFullscreen(stopCard);
+              handleSpeak(stopCard.speechText);
+            }}
+            activeOpacity={0.6}
+            className="items-center"
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Ionicons name="hand-right-outline" size={30} color="#E82127" />
+          </TouchableOpacity>
         </View>
 
-        {/* TESLA-STYLE LIST SECTION (Controls, Climate, Location style rows) */}
-        <View className="px-5 mt-6">
-          <Text className="text-[#8E8E93] text-xs font-bold uppercase tracking-wider mb-2.5">
-            Commuter Telemetry & Services
-          </Text>
-
-          <View className="bg-[#121214] rounded-3xl border border-[#27272A] overflow-hidden">
-            {/* Row 1: Fare Calculator Modal Trigger */}
-            <TouchableOpacity
-              onPress={() => setShowFareModal(true)}
-              activeOpacity={0.7}
-              className="p-4 flex-row items-center justify-between border-b border-[#1C1C1E]"
-            >
-              <View className="flex-row items-center flex-1 mr-3">
-                <View className="w-10 h-10 rounded-2xl bg-[#1C1C1E] items-center justify-center mr-3.5 border border-[#27272A]">
-                  <MaterialCommunityIcons name="calculator-variant" size={20} color="#FFFFFF" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-white text-base font-bold">
-                    LTFRB Fare Calculator
-                  </Text>
-                  <Text className="text-[#8E8E93] text-xs font-medium mt-0.5">
-                    ₱{fareBreakdown.totalFare.toFixed(2)} • {commuteMode === "traditional" ? "Traditional PUJ" : "Modern PUV"} ({selectedDistanceKm} km)
-                  </Text>
-                </View>
+        {/* TESLA OPEN LIST ROWS (No Outer Box, No Icon Boxes, Large Readable Text) */}
+        <View className="px-6 mt-2">
+          <TouchableOpacity
+            onPress={() => setShowFareModal(true)}
+            activeOpacity={0.6}
+            className="py-5 flex-row items-center justify-between"
+          >
+            <View className="flex-row items-center">
+              <MaterialCommunityIcons name="speedometer" size={28} color="#8E8E93" />
+              <View className="ml-5">
+                <Text className="text-white text-xl font-bold">
+                  Fare Guide
+                </Text>
+                <Text className="text-[#8E8E93] text-base font-medium mt-0.5">
+                  ₱{fareBreakdown.totalFare.toFixed(0)} • {selectedDistanceKm} km
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#71717A" />
-            </TouchableOpacity>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#636366" />
+          </TouchableOpacity>
 
-            {/* Row 2: Navigation Shortcut */}
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/WebMapTab")}
-              activeOpacity={0.7}
-              className="p-4 flex-row items-center justify-between border-b border-[#1C1C1E]"
-            >
-              <View className="flex-row items-center flex-1 mr-3">
-                <View className="w-10 h-10 rounded-2xl bg-[#1C1C1E] items-center justify-center mr-3.5 border border-[#27272A]">
-                  <Ionicons name="navigate-outline" size={20} color="#FFFFFF" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-white text-base font-bold">
-                    Transit Navigation
-                  </Text>
-                  <Text className="text-[#8E8E93] text-xs font-medium mt-0.5">
-                    Live GPS Routing & Turn-by-Turn Directions
-                  </Text>
-                </View>
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/WebMapTab")}
+            activeOpacity={0.6}
+            className="py-5 flex-row items-center justify-between"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="navigate-outline" size={28} color="#8E8E93" />
+              <View className="ml-5">
+                <Text className="text-white text-xl font-bold">
+                  Navigation
+                </Text>
+                <Text className="text-[#8E8E93] text-base font-medium mt-0.5">
+                  Google Maps
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#71717A" />
-            </TouchableOpacity>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#636366" />
+          </TouchableOpacity>
 
-            {/* Row 3: PWD / Senior ID Vault */}
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/IDCardTab")}
-              activeOpacity={0.7}
-              className="p-4 flex-row items-center justify-between border-b border-[#1C1C1E]"
-            >
-              <View className="flex-row items-center flex-1 mr-3">
-                <View className="w-10 h-10 rounded-2xl bg-[#1C1C1E] items-center justify-center mr-3.5 border border-[#27272A]">
-                  <Ionicons name="card-outline" size={20} color="#FFFFFF" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-white text-base font-bold">
-                    Digital PWD & Senior ID
-                  </Text>
-                  <Text className="text-[#8E8E93] text-xs font-medium mt-0.5">
-                    Offline Encrypted Card for 20% Discount
-                  </Text>
-                </View>
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/VoicePromptsTab")}
+            activeOpacity={0.6}
+            className="py-5 flex-row items-center justify-between"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="mic-outline" size={28} color="#8E8E93" />
+              <View className="ml-5">
+                <Text className="text-white text-xl font-bold">
+                  Voice
+                </Text>
+                <Text className="text-[#8E8E93] text-base font-medium mt-0.5">
+                  {naturalVoiceService.getVoiceModel().name} • Local TTS
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#71717A" />
-            </TouchableOpacity>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#636366" />
+          </TouchableOpacity>
 
-            {/* Row 4: LTFRB Official Hotlines */}
-            <TouchableOpacity
-              onPress={() => Linking.openURL("tel:1342").catch(() => {})}
-              activeOpacity={0.7}
-              className="p-4 flex-row items-center justify-between"
-            >
-              <View className="flex-row items-center flex-1 mr-3">
-                <View className="w-10 h-10 rounded-2xl bg-[#1C1C1E] items-center justify-center mr-3.5 border border-[#27272A]">
-                  <Ionicons name="call-outline" size={20} color="#FFFFFF" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-white text-base font-bold">
-                    LTFRB 24/7 Hotline 1342
-                  </Text>
-                  <Text className="text-[#8E8E93] text-xs font-medium mt-0.5">
-                    Report Overcharging & Commuter Rights Violations
-                  </Text>
-                </View>
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/IDCardTab")}
+            activeOpacity={0.6}
+            className="py-5 flex-row items-center justify-between"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="shield-checkmark-outline" size={28} color="#8E8E93" />
+              <View className="ml-5">
+                <Text className="text-white text-xl font-bold">
+                  ID Vault
+                </Text>
+                <Text className="text-[#8E8E93] text-base font-medium mt-0.5">
+                  Offline Pass
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#71717A" />
-            </TouchableOpacity>
-          </View>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#636366" />
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* FULLSCREEN FLASHCARD MODAL (High-Contrast Beacon Mode for PWDs) */}
+      {/* FULLSCREEN ANIMATED FLASHCARD MODAL */}
       <Modal
         visible={fullscreenCard !== null}
         animationType="fade"
@@ -469,285 +347,208 @@ export default function HomeScreen() {
         onRequestClose={() => setFullscreenCard(null)}
       >
         {fullscreenCard && (
-          <View className="flex-1 bg-[#000000] justify-between p-8 pt-12">
+          <View className="flex-1 bg-[#000000] justify-between px-6 py-12">
             <StatusBar hidden />
 
-            {/* Top Close & Speech Bar */}
-            <View className="flex-row justify-between items-center">
-              <View className="bg-[#1C1C1E] px-4 py-2 rounded-full border border-[#27272A]">
-                <Text className="text-[#A1A1AA] text-xs font-bold uppercase tracking-wider">
-                  {fullscreenCard.badge}
-                </Text>
-              </View>
+            {/* Frameless Top Icons */}
+            <View className="flex-row justify-between items-center px-2">
+              <TouchableOpacity
+                onPress={() => handleSpeak(fullscreenCard.speechText)}
+                hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+              >
+                <Ionicons name="volume-high" size={36} color="#FFFFFF" />
+              </TouchableOpacity>
 
-              <View className="flex-row items-center gap-3">
-                <TouchableOpacity
-                  onPress={() => handleSpeak(fullscreenCard.speechText)}
-                  className="w-12 h-12 rounded-full bg-[#1C1C1E] items-center justify-center border border-[#27272A]"
-                >
-                  <Ionicons name="volume-high" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => setFullscreenCard(null)}
-                  className="w-12 h-12 rounded-full bg-[#FFFFFF] items-center justify-center"
-                >
-                  <Ionicons name="close" size={24} color="#000000" />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                onPress={() => setFullscreenCard(null)}
+                hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+              >
+                <Ionicons name="close" size={38} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
 
-            {/* Giant Visual Display */}
-            <View className="items-center justify-center my-auto">
-              <Text className="text-[#8E8E93] text-2xl font-bold uppercase tracking-widest text-center mb-4">
-                {fullscreenCard.title}
+            {/* Animated Illustration + Giant High-Contrast Text */}
+            <TouchableOpacity
+              activeOpacity={0.95}
+              onPress={() => handleSpeak(fullscreenCard.speechText)}
+              className="items-center justify-center my-auto"
+            >
+              <FlashcardScene accentColor={fullscreenCard.accent} />
+
+              <Text className="text-[#8E8E93] text-2xl font-bold uppercase tracking-widest text-center mt-6 mb-2">
+                {fullscreenCard.label}
               </Text>
               <Text className="text-white font-black text-6xl tracking-tight text-center leading-tight">
-                {fullscreenCard.philippinePhrase}
+                {fullscreenCard.phrase}
               </Text>
-              <Text className="text-[#A1A1AA] text-xl font-medium text-center mt-6 max-w-sm">
+              <Text className="text-[#A1A1AA] text-2xl font-medium text-center mt-4">
                 {fullscreenCard.subtext}
               </Text>
-            </View>
-
-            {/* Bottom Dismiss Prompt */}
-            <TouchableOpacity
-              onPress={() => setFullscreenCard(null)}
-              activeOpacity={0.8}
-              className="w-full bg-[#1C1C1E] py-4 rounded-2xl items-center justify-center border border-[#27272A]"
-            >
-              <Text className="text-white font-bold text-sm uppercase tracking-wider">
-                Tap Anywhere or Here to Dismiss
-              </Text>
             </TouchableOpacity>
+
+            <View className="items-center pb-4">
+              <Text className="text-[#636366] text-sm font-semibold uppercase tracking-widest">
+                Tap card to speak
+              </Text>
+            </View>
           </View>
         )}
       </Modal>
 
-      {/* FARE CALCULATOR TELEMETRY MODAL */}
+      {/* FARE GUIDE MODAL (Clean, Unboxed, Tesla Climate-Style Controls) */}
       <Modal
         visible={showFareModal}
         animationType="slide"
-        presentationStyle="pageSheet"
         onRequestClose={() => setShowFareModal(false)}
       >
-        <View className="flex-1 bg-[#000000] p-6 pt-8">
-          <View className="flex-row items-center justify-between pb-4 border-b border-[#1C1C1E]">
-            <View>
-              <Text className="text-white text-xl font-extrabold tracking-tight">
-                Fare Calculator
-              </Text>
-              <Text className="text-[#8E8E93] text-xs font-medium">
-                Official LTFRB Rate Computation
-              </Text>
-            </View>
-
+        <View className="flex-1 bg-[#000000] px-6 pt-12 pb-8 justify-between">
+          {/* Header */}
+          <View className="flex-row items-center justify-between">
+            <Text className="text-white text-3xl font-bold">
+              Fare Guide
+            </Text>
             <TouchableOpacity
               onPress={() => setShowFareModal(false)}
-              className="w-9 h-9 rounded-full bg-[#1C1C1E] items-center justify-center border border-[#27272A]"
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
-              <Ionicons name="close" size={20} color="#FFFFFF" />
+              <Ionicons name="close" size={32} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} className="mt-4">
-            {/* Mode Switch: Traditional vs Modern PUV */}
-            <View className="flex-row bg-[#121214] p-1 rounded-2xl mb-4 border border-[#27272A]">
+          {/* Center Giant Fare Readout & Distance Stepper (Like Tesla 68° Climate Screen) */}
+          <View className="items-center my-auto">
+            <Text className="text-[#8E8E93] text-base font-semibold uppercase tracking-widest mb-2">
+              {commuteMode === "traditional" ? "Traditional Jeepney" : "Modern PUV"}
+            </Text>
+
+            <Text className="text-white font-black text-7xl tracking-tight my-2">
+              ₱{fareBreakdown.totalFare.toFixed(2)}
+            </Text>
+
+            {/* Frameless Distance Stepper `< 4.0 km >` */}
+            <View className="flex-row items-center justify-center gap-10 mt-6">
               <TouchableOpacity
-                onPress={() => setCommuteMode("traditional")}
-                className={`flex-1 py-3 rounded-xl items-center ${
-                  commuteMode === "traditional" ? "bg-[#27272A]" : "bg-transparent"
-                }`}
+                onPress={() => adjustDistance(-1)}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
               >
-                <Text
-                  className={`text-xs font-bold uppercase tracking-wide ${
-                    commuteMode === "traditional" ? "text-white" : "text-[#71717A]"
-                  }`}
-                >
-                  Traditional PUJ
-                </Text>
-                <Text className="text-[#8E8E93] text-[10px] mt-0.5">
-                  ₱13 base • ₱1.80/km
-                </Text>
+                <Ionicons name="chevron-back" size={36} color="#8E8E93" />
               </TouchableOpacity>
 
+              <Text className="text-white font-bold text-4xl">
+                {selectedDistanceKm.toFixed(0)} km
+              </Text>
+
               <TouchableOpacity
-                onPress={() => setCommuteMode("modern")}
-                className={`flex-1 py-3 rounded-xl items-center ${
-                  commuteMode === "modern" ? "bg-[#27272A]" : "bg-transparent"
-                }`}
+                onPress={() => adjustDistance(1)}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
               >
-                <Text
-                  className={`text-xs font-bold uppercase tracking-wide ${
-                    commuteMode === "modern" ? "text-white" : "text-[#71717A]"
-                  }`}
-                >
-                  Modern PUV
-                </Text>
-                <Text className="text-[#8E8E93] text-[10px] mt-0.5">
-                  ₱15 base • ₱2.20/km
-                </Text>
+                <Ionicons name="chevron-forward" size={36} color="#8E8E93" />
               </TouchableOpacity>
             </View>
 
-            {/* Distance Stepper (Tesla Climate-Style) */}
-            <View className="bg-[#121214] rounded-3xl p-5 border border-[#27272A] items-center mb-4">
-              <Text className="text-[#8E8E93] text-xs font-bold uppercase tracking-wider mb-2">
-                Commute Distance
-              </Text>
-              <View className="flex-row items-center justify-between w-full px-4 my-2">
+            {/* Quick KM Numbers */}
+            <View className="flex-row gap-6 mt-8">
+              {DISTANCE_PRESETS.map((km) => (
                 <TouchableOpacity
-                  onPress={() => adjustDistance(-1)}
-                  className="w-12 h-12 rounded-full bg-[#1C1C1E] items-center justify-center border border-[#27272A]"
+                  key={km}
+                  onPress={() => setPresetDistance(km)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="remove" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-
-                <View className="items-center">
-                  <Text className="text-white font-black text-4xl tracking-tight">
-                    {selectedDistanceKm.toFixed(1)}
-                  </Text>
-                  <Text className="text-[#71717A] text-xs font-bold uppercase">
-                    Kilometers
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => adjustDistance(1)}
-                  className="w-12 h-12 rounded-full bg-[#1C1C1E] items-center justify-center border border-[#27272A]"
-                >
-                  <Ionicons name="add" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Distance Presets */}
-              <View className="flex-row gap-2 mt-4">
-                {DISTANCE_PRESETS.map((p) => (
-                  <TouchableOpacity
-                    key={p.km}
-                    onPress={() => setPresetDistance(p.km)}
-                    className={`px-3 py-1.5 rounded-xl border ${
-                      selectedDistanceKm === p.km
-                        ? "bg-white border-white"
-                        : "bg-[#1C1C1E] border-[#27272A]"
+                  <Text
+                    className={`text-lg font-bold ${
+                      selectedDistanceKm === km ? "text-white" : "text-[#52525B]"
                     }`}
                   >
-                    <Text
-                      className={`text-xs font-bold ${
-                        selectedDistanceKm === p.km ? "text-black" : "text-[#A1A1AA]"
-                      }`}
-                    >
-                      {p.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                    {km} km
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Bottom Controls */}
+          <View className="gap-6">
+            <View className="flex-row items-center justify-between py-2">
+              <Text className="text-white font-bold text-xl">
+                Modern PUV
+              </Text>
+              <Switch
+                value={commuteMode === "modern"}
+                onValueChange={(v) => setCommuteMode(v ? "modern" : "traditional")}
+                thumbColor="#FFFFFF"
+                trackColor={{ false: "#27272A", true: "#52525B" }}
+              />
             </View>
 
-            {/* 20% Discount Toggle */}
-            <View className="bg-[#121214] rounded-2xl p-4 border border-[#27272A] flex-row items-center justify-between mb-4">
-              <View className="flex-1 mr-3">
-                <Text className="text-white font-bold text-sm">
-                  20% Statutory Discount
-                </Text>
-                <Text className="text-[#8E8E93] text-xs mt-0.5">
-                  PWD, Senior Citizens, and Students (RA 9442 & 9994)
-                </Text>
-              </View>
+            <View className="flex-row items-center justify-between py-2">
+              <Text className="text-white font-bold text-xl">
+                20% Discount (PWD / Senior)
+              </Text>
               <Switch
                 value={hasDiscount}
                 onValueChange={setHasDiscount}
                 thumbColor="#FFFFFF"
-                trackColor={{ false: "#27272A", true: "#FFFFFF" }}
+                trackColor={{ false: "#27272A", true: "#52525B" }}
               />
             </View>
 
-            {/* Calculated Fare Result Card */}
-            <View className="bg-[#121214] rounded-3xl p-6 border border-[#27272A] items-center mb-6">
-              <Text className="text-[#8E8E93] text-xs font-bold uppercase tracking-wider mb-1">
-                Estimated Legal Fare
-              </Text>
-              <Text className="text-white font-black text-5xl tracking-tight my-1">
-                ₱{fareBreakdown.totalFare.toFixed(2)}
-              </Text>
-              <Text className="text-[#71717A] text-xs font-medium">
-                {commuteMode === "traditional" ? "Traditional Jeepney" : "Modern PUV"} •{" "}
-                {hasDiscount ? "20% Discount Applied" : "Regular Fare"}
-              </Text>
-            </View>
-
-            {/* Direct Official Links */}
-            <View className="flex-row gap-3 mb-8">
-              <TouchableOpacity
-                onPress={() => setShowMatrixModal(true)}
-                className="flex-1 bg-[#1C1C1E] py-3.5 rounded-2xl items-center justify-center border border-[#27272A]"
-              >
-                <Text className="text-white font-bold text-xs uppercase tracking-wider">
-                  View Full Matrix
+            <View className="flex-row justify-between items-center pt-4">
+              <TouchableOpacity onPress={() => setShowMatrixModal(true)}>
+                <Text className="text-[#8E8E93] font-bold text-base">
+                  Rate Table
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={handleOpenLtfrbWebsite}
-                className="flex-1 bg-[#FFFFFF] py-3.5 rounded-2xl items-center justify-center"
-              >
-                <Text className="text-black font-bold text-xs uppercase tracking-wider">
-                  LTFRB.gov.ph ↗
+              <TouchableOpacity onPress={handleOpenLtfrbWebsite}>
+                <Text className="text-white font-bold text-base">
+                  ltfrb.gov.ph ↗
                 </Text>
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </View>
         </View>
       </Modal>
 
-      {/* FULL RATE MATRIX MODAL */}
+      {/* RATE MATRIX MODAL */}
       <Modal
         visible={showMatrixModal}
         animationType="slide"
         onRequestClose={() => setShowMatrixModal(false)}
       >
-        <View className="flex-1 bg-[#000000] p-6 pt-8">
-          <View className="flex-row items-center justify-between pb-4 border-b border-[#1C1C1E]">
-            <View>
-              <Text className="text-white text-xl font-bold">
-                LTFRB Official Rate Matrix
-              </Text>
-              <Text className="text-[#8E8E93] text-xs">
-                Resolution No. 2023-016
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => setShowMatrixModal(false)}
-              className="w-9 h-9 rounded-full bg-[#1C1C1E] items-center justify-center border border-[#27272A]"
-            >
-              <Ionicons name="close" size={20} color="#FFFFFF" />
+        <View className="flex-1 bg-[#000000] px-6 pt-12">
+          <View className="flex-row items-center justify-between pb-6">
+            <Text className="text-white text-2xl font-bold">
+              LTFRB Fare Table
+            </Text>
+            <TouchableOpacity onPress={() => setShowMatrixModal(false)}>
+              <Ionicons name="close" size={30} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView className="mt-4">
-            <View className="bg-[#121214] rounded-2xl border border-[#27272A] overflow-hidden">
-              <View className="flex-row bg-[#1C1C1E] p-3 border-b border-[#27272A]">
-                <Text className="w-16 text-[#8E8E93] text-xs font-bold">KM</Text>
-                <Text className="flex-1 text-[#8E8E93] text-xs font-bold text-center">Traditional</Text>
-                <Text className="flex-1 text-[#8E8E93] text-xs font-bold text-center">Modern PUV</Text>
-              </View>
-              {ltfrbMatrix.map((row) => (
-                <View
-                  key={row.km}
-                  className="flex-row p-3 border-b border-[#1C1C1E] items-center"
-                >
-                  <Text className="w-16 text-white font-bold text-xs">{row.km} km</Text>
-                  <Text className="flex-1 text-white text-xs text-center font-medium">
-                    ₱{row.regularTraditional.toFixed(2)}{" "}
-                    <Text className="text-[#8E8E93]">({row.discountTraditional.toFixed(2)})</Text>
-                  </Text>
-                  <Text className="flex-1 text-white text-xs text-center font-medium">
-                    ₱{row.regularModern.toFixed(2)}{" "}
-                    <Text className="text-[#8E8E93]">({row.discountModern.toFixed(2)})</Text>
-                  </Text>
-                </View>
-              ))}
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View className="flex-row py-3 border-b border-[#27272A]">
+              <Text className="w-20 text-[#8E8E93] text-base font-bold">KM</Text>
+              <Text className="flex-1 text-[#8E8E93] text-base font-bold text-center">
+                Traditional
+              </Text>
+              <Text className="flex-1 text-[#8E8E93] text-base font-bold text-center">
+                Modern
+              </Text>
             </View>
+            {ltfrbMatrix.map((row) => (
+              <View
+                key={row.km}
+                className="flex-row py-4 border-b border-[#18181B] items-center"
+              >
+                <Text className="w-20 text-white font-bold text-base">{row.km} km</Text>
+                <Text className="flex-1 text-white text-base text-center font-semibold">
+                  ₱{row.regularTraditional.toFixed(2)}
+                </Text>
+                <Text className="flex-1 text-white text-base text-center font-semibold">
+                  ₱{row.regularModern.toFixed(2)}
+                </Text>
+              </View>
+            ))}
           </ScrollView>
         </View>
       </Modal>
