@@ -54,7 +54,26 @@ Match model selection (including subagent delegation) and thinking budget to the
 
 ---
 
-## 5. ParaPo! Quick Reference Commands & Environment Paths
+## 5. ParaPo! UI/UX & Accessibility Design Guardrails
+- **Unboxed Open-Canvas Layout (Tesla-Inspired):**
+  - Use a pure pitch-black (`#000000`) background canvas.
+  - Never nest bordered boxes inside boxes ("box within a box"). Utilize full-bleed horizontal and vertical screen space generously.
+- **Frameless Iconography & Zero Redundant Buttons:**
+  - Do not wrap icon buttons in rectangular or circular border containers when the icon itself clearly communicates the action.
+  - Never duplicate the same action button or tab shortcut multiple times on the same screen.
+- **Enlarged, Low-Friction Typography:**
+  - Minimize header and subtitle text. Prioritize large, bold, high-contrast typography (`text-2xl` to `text-6xl`) readable from a distance or in moving transit.
+- **Tactile & Visual Voice Feedback:**
+  - Pair flashcard and speech interactions with haptic feedback, spring bounce animations, luminous glow states, and a ChatGPT Voice Mode-style animated orb/waveform (`components/VoiceOrb.tsx`).
+  - Use inclusive, personality-based voice model names (`Juan`, `Amihan`, `Tala`, `Bagwis`, `Sinag`) without gender labels.
+- **Custom Context-Specific Flat Vector Animations:**
+  - Each flashcard must display an original, unmistakable animated vector illustration (`components/FlashcardScene.tsx`) matching its commuter intent (e.g., raised stop hand for `PARA PO!`, cash/coin for `BAYAD PO!`, `-20%` ID pass for `PWD / SENIOR`, coins in palm for `SUKLI PO!`, curbside pin for `SA TABI LANG!`).
+- **Seamless In-App WebViews:**
+  - Keep external portals (`ltfrb.gov.ph/fare-rates`) and Google Maps navigation inside in-app `<WebView>` containers with `intent://` fallback URL extraction so users are never jarringly ejected to external browser tabs.
+
+---
+
+## 6. ParaPo! Quick Reference Commands & Environment Paths
 
 ### Environment & Tool Paths
 - **Android SDK:** `D:\Dev\ToolData\Android-Sdk` (`ANDROID_HOME=D:\Dev\ToolData\Android-Sdk`)
