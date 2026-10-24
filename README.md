@@ -1,208 +1,266 @@
-# ParaPo! 👋
+# ParaPo! 🚍✨
 
-This is a [React Native with Expo](https://reactnative.dev/docs/environment-setup) project created by running `npx create-expo-app@latest`
+> **Mobile-First Accessible Commuter Companion for Filipino Commuters & PWDs**  
+> Designed with a Tesla-inspired minimalist canvas, animated commuter flashcards, ChatGPT-inspired Voice Mode orb, local natural Filipino text-to-speech, and embedded transit navigation.
 
-## Table of Contents
+---
 
-1. [📒About The Project](#about-the-project)
-    - [🔧Built With](#built-with)
-2. [💻Setup](#setup)
+## 📱 Visual Showcase
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="33%">
+        <img src="./docs/screenshots/commute_flashcards.png" alt="Commute Screen & Animated Flashcards" width="100%" />
+        <br />
+        <b>Commute & Flashcard Scene</b>
+      </td>
+      <td align="center" width="33%">
+        <img src="./docs/screenshots/navigation_maps.png" alt="In-App Transit Navigation" width="100%" />
+        <br />
+        <b>Transit Navigation & Directions</b>
+      </td>
+      <td align="center" width="33%">
+        <img src="./docs/screenshots/voice_prompts.png" alt="Voice Prompts & Voice Orb" width="100%" />
+        <br />
+        <b>Voice Models & Custom Prompts</b>
+      </td>
+    </tr>
+  </table>
+</div>
+
+---
+
+## 📌 Table of Contents
+
+1. [About The Project](#-about-the-project)
+2. [Key Features](#-key-features)
+3. [Architecture & Tech Stack](#-architecture--tech-stack)
+4. [Project Structure](#-project-structure)
+5. [Getting Started](#-getting-started)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
-    - [🗺️ Map Setup (PUV Commute Mode)](#map-setup-puv-commute-mode)
-3. [✅Tests](#tests)
-4. [🗺️Roadmap](#roadmap)
-5. [🤝Contributing](#contributing)
-6. [✉️Authors](#authors)
-7. [⭐Acknowledgments](#acknowledgments)
-8. [📦Version History](#version-history)
+    - [Running Development](#running-development)
+    - [Building Standalone Release APK](#building-standalone-release-apk)
+6. [UI/UX & Design Philosophy](#-uiux--design-philosophy)
+7. [Contributing](#-contributing)
+8. [Authors](#-authors)
+9. [Version History](#-version-history)
+10. [License](#-license)
 
 ---
 
-## About The Project
+## 📖 About The Project
 
-ParaPo! is an accessibility-friendly app for Filipino commuters, designed for persons with disabilities (PWDs) such as those who are deaf, have speech or mobility impairments, or experience communication challenges. It offers tap-to-play voice prompts like “Para po!” and “Bayad po, papuntang [location]”, along with visual animations to help users easily interact with drivers and conductors—making public transport more inclusive, safe, and stress-free. More helpful features are also built in, designed with accessibility and everyday commuting needs in mind.
+Public transport in the Philippines (jeepneys, modern PUVs, UV Express, and buses) relies heavily on verbal cues (*"Para po!"*, *"Bayad po!"*, *"Sukli po!"*) and fast-paced curbside interactions. For **Persons with Disabilities (PWDs)**—particularly deaf, hard-of-hearing, speech-impaired, or mobility-challenged commuters—navigating public transport can be stressful and exclusionary.
 
-![Draft Plan](./docs/plan.png)
-
-### Built With
-
-[![React Native](https://img.shields.io/badge/-React%20Native-black?style=flat&logo=react)](https://reactnative.dev/) – Core framework for building native mobile apps.  
-[![Expo](https://img.shields.io/badge/Expo-000020?logo=expo)](https://expo.dev/) – Toolchain for rapid React Native development.  
-[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript) – Main programming language for app logic and UI.
-
-[⬆️ Back to Top](#table-of-contents)
+**ParaPo!** bridges this accessibility barrier. Built with an unboxed, high-contrast dark aesthetic inspired by modern automotive software, ParaPo! combines:
+- **Instant Full-Bleed Animated Visual Cards** to show drivers and passengers what you need from across the vehicle.
+- **Local Natural Filipino Text-to-Speech** with prosody-normalized Filipino pronunciation and inclusive voice personalities.
+- **ChatGPT Voice Mode Orb** featuring pulsing 5-bar waveforms and tactile heavy haptic feedback.
+- **In-App Google Maps Navigation** with custom intent-handling for directions and step-by-step route previews without app bounces.
+- **LTFRB Fare Matrix & Offline Calculator** providing accurate fare computation for PUJs, Modern PUVs, and UV Express with statutory -20% PWD/Senior/Student discounts.
+- **Encrypted Local ID Vault** for displaying verified discount IDs with double-tap zoom and rotation.
 
 ---
 
-## Setup
+## 🚀 Key Features
+
+### 🎴 1. Visual Commuter Flashcards & Animated Scenes
+- **Original Geometric Vector Illustrations:** Context-specific animations tailored to Filipino commuter interactions:
+  - 🛑 **`PARA PO!` (`stop`):** Raised yellow open hand gesture inside a red stop octagon with roadside markers.
+  - 💵 **`BAYAD PO!` (`payment`):** Crisp Philippine Peso banknote (`₱`) and sliding gold coins with animated motion chevrons.
+  - 🪪 **`PWD / SENIOR` (`discount`):** Verified commuter pass card with an avatar and bold `-20%` discount badge.
+  - 🪙 **`SUKLI PO!` (`change`):** Three Peso coins (`₱10`, `₱5`, `₱1`) dropping into an open receiving hand.
+  - 🚏 **`SA TABI LANG!` (`curbside`):** Sleek commuter vehicle pulling up to a curbside pin and crosswalk.
+- **Fullscreen Takeover:** Tap any flashcard to launch a high-contrast, maximum-readability full-screen view readable from across the vehicle.
+
+### 🎙️ 2. ChatGPT Voice Mode Orb & Natural Filipino TTS
+- **Interactive Voice Orb:** Large touch surface morphing into a glowing, pulsing sphere with 5 animated waveform bars when speaking.
+- **Natural Filipino Local Engine:** Uses on-device neural TTS engines (`fil` locale with intelligent phoneme prosody mapping) that runs 100% offline and free on modern mobile devices.
+- **Inclusive Voice Model Personalities:** Five natural voice options:
+  - `Juan` – Easygoing and versatile (Default)
+  - `Amihan` – Calming, gentle, and clear
+  - `Tala` – Bright, vibrant, and energetic
+  - `Bagwis` – Confident, grounded, and steady
+  - `Sinag` – Warm, radiant, and reassuring
+
+### 🗺️ 3. Full-Bleed In-App Transit Navigation
+- **Embedded Google Maps Web Browser:** Fully interactive map canvas with custom origin and destination inputs.
+- **Smart Intent & Protocol Routing:** Intercepts Google Maps `intent://`, `maps.app.goo.gl`, and `comgooglemapsurl://` calls, seamlessly converting place cards and navigation requests into in-webview Directions routes without getting trapped in app stores.
+- **Google Sign-In Escape Guard:** Tapping "Save" automatically displays a prominent `"← Back to Google Maps (Skip Sign-In)"` banner, and connects to the Android hardware back gesture so users are never stuck in login redirects.
+
+### 💰 4. LTFRB Fare Guide & In-App Matrix
+- **Instant Local Fare Calculator:** Computes exact fares based on vehicle type (Traditional Jeepney, Modern PUJ, UV Express) and distance.
+- **Statutory Discount Toggle:** One-tap 20% discount calculation for PWDs, Seniors, and Students.
+- **Official LTFRB Rate Table Modal:** Embedded webview for inspecting the latest published fare matrices directly from the Land Transportation Franchising and Regulatory Board.
+
+### 🛡️ 5. PWD & Senior ID Vault
+- **Secure On-Device Storage:** Store front/back photos of your PWD, Senior Citizen, or Student ID locally on your device.
+- **Quick Conductor Inspection:** One-tap inspection mode with smooth pinch-to-zoom, double-tap zoom, and screen rotation.
+
+---
+
+## 🛠️ Architecture & Tech Stack
+
+| Domain | Technology / Library | Description |
+| :--- | :--- | :--- |
+| **Framework** | [React Native 0.79](https://reactnative.dev/) | Cross-platform native mobile runtime |
+| **Toolchain** | [Expo SDK 54](https://expo.dev/) | Modern tooling with New Architecture (Bridgeless) |
+| **Routing** | [Expo Router 4](https://docs.expo.dev/router/introduction/) | Typed file-based routing with tab layouts |
+| **Styling** | [NativeWind v4](https://www.nativewind.dev/) (Tailwind CSS 3.4) | Utility-first styling optimized for React Native |
+| **Animations** | [React Native Reanimated 3](https://docs.swmansion.com/react-native-reanimated/) | 60+ FPS native-thread vector and spring animations |
+| **Speech (TTS)** | [Expo Speech](https://docs.expo.dev/versions/latest/sdk/speech/) | Local neural text-to-speech with prosody normalization |
+| **Haptics** | [Expo Haptics](https://docs.expo.dev/versions/latest/sdk/haptics/) | Sensory tactile feedback on card taps and speech |
+| **Location** | [Expo Location](https://docs.expo.dev/versions/latest/sdk/location/) | Geolocation and reverse geocoding for commuter origin |
+| **Web & Maps** | [React Native WebView](https://github.com/react-native-webview/react-native-webview) | Embedded Google Maps and LTFRB browser with intent routing |
+| **ID Viewer** | [React Native Image Pan Zoom](https://github.com/ascoders/react-native-image-zoom) | High-performance interactive ID zoom viewer |
+
+---
+
+## 📂 Project Structure
+
+```text
+parapo/
+├── android/                 # Bare Android native project configuration & Gradle scripts
+├── app/                     # Expo Router file-based screens
+│   ├── (tabs)/
+│   │   ├── _layout.tsx      # Dark minimalist bottom tab navigation
+│   │   ├── index.tsx        # Commute Home: Flashcard carousel, VoiceOrb, Fare Guide
+│   │   ├── WebMapTab.tsx    # Navigation: Full-bleed Google Maps WebView & Intent router
+│   │   ├── VoicePromptsTab.tsx # Flashcards & Voice Models: Custom text input & quick prompts
+│   │   └── IDCardTab.tsx    # ID Vault: Secure PWD/Senior discount pass viewer
+│   ├── _layout.tsx          # Root app provider and stack container
+│   ├── +not-found.tsx       # 404 fallback route
+│   └── logic/
+│       └── useIdCard.ts     # ID Vault storage and image management hook
+├── assets/                  # App launcher icons, splash screens, and vector assets
+├── components/
+│   ├── FlashcardScene.tsx   # Context-specific geometric flat-vector animated scenes
+│   ├── VoiceOrb.tsx         # ChatGPT Voice Mode orb with pulsing waveform bars
+│   └── FullscreenCardModal.tsx # Fullscreen accessibility card modal
+├── constants/
+│   └── fareMatrix.ts        # Official LTFRB fare rates, distance steps, and discount logic
+├── docs/
+│   └── screenshots/         # Verified production screenshots on physical device
+├── services/
+│   └── naturalVoiceService.ts # Local neural TTS engine and Filipino prosody normalizer
+├── app.json                 # Expo app manifest and Android package configuration
+├── tailwind.config.js       # NativeWind Tailwind CSS design token mappings
+└── tsconfig.json            # Strict TypeScript configuration
+```
+
+---
+
+## 💻 Getting Started
 
 ### Prerequisites
 
-- [VS Code](https://code.visualstudio.com/)
-- [Warp Terminal](https://www.warp.dev/download)  
-- [git & git bash](https://git-scm.com/)
-- [Google Chrome](https://www.google.com/chrome/)  
-- [Node Version Manager (NVM)](https://github.com/coreybutler/nvm-windows)
-
-**NVM Install Guide:**
-
-1. Go to [nvm-windows releases](https://github.com/coreybutler/nvm-windows/releases)
-2. Under Assets, download and install the `nvm-setup.exe` file of the latest release
-3. Complete the Installation Wizard
-4. Confirm installation:
-
-   ```sh
-   nvm -v
-   ```
-
-5. Install and use the required Node.js version for this project:
-
-   ```sh
-   nvm install v22.12.0
-   nvm use v22.12.0
-   ```
-
-To confirm you have the required tools installed, run the following commands in your terminal:
-
-```sh
-node -v
-npm -v
-git -v
-```
-
-- **On your device**  
-  - [Expo Go for Android ![Android](https://img.shields.io/badge/-Android-3DDC84?logo=android&logoColor=white&style=flat-square)](https://play.google.com/store/apps/details?id=host.exp.exponent)  
-  - [Expo Go for iOS ![iOS](https://img.shields.io/badge/-iOS-000000?logo=apple&logoColor=white&style=flat-square)](https://apps.apple.com/us/app/expo-go/id982107779)  
-- **Optional**  
-  - [Android Studio ![Windows](https://img.shields.io/badge/-Windows-0078D6?logo=windows&logoColor=white&style=flat-square) ![macOS](https://img.shields.io/badge/-macOS-000000?logo=apple&logoColor=white&style=flat-square)](https://developer.android.com/studio)
-  - [Xcode (macOS Only) ![macOS](https://img.shields.io/badge/-macOS-000000?logo=apple&logoColor=white&style=flat-square)](https://developer.apple.com/xcode/)
-
-**Recommended VS Code Extensions:**
-
-- [ES7+ React/Redux/React-Native snippets](https://marketplace.visualstudio.com/items?itemName=dsznajder.es7-react-js-snippets)
-- [React Native Tools](https://marketplace.visualstudio.com/items?itemName=msjsdiag.vscode-react-native)
-- [Expo Tools](https://marketplace.visualstudio.com/items?itemName=expo.vscode-expo-tools)
+- **Node.js:** `v20.x` or `v22.x` (Recommended: install via [nvm-windows](https://github.com/coreybutler/nvm-windows) or `nvm`)
+- **Package Manager:** `npm` (bundled with Node)
+- **Android Development (for native builds):**
+  - Android SDK with API Level 35 (`compileSdk 35`, `targetSdk 35`, `minSdk 24`)
+  - JDK 17 (Microsoft OpenJDK 17 or Azul Zulu 17)
+  - Android NDK `27.1.12297006`
 
 ### Installation
 
-1. Clone the repo and `cd` into the project directory.  
-2. Install dependencies:
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/reskydevs/parapo.git
+   cd parapo
+   ```
 
+2. **Install dependencies:**
    ```bash
    npm install
    ```
 
-3. **Install the map dependency before starting Expo:**
-
+3. **Verify TypeScript integrity:**
    ```bash
-   npx expo install react-native-maps
+   npx tsc --noEmit
    ```
 
-4. Start Expo:
+### Running Development
 
+Start the Metro bundler:
+```bash
+npx expo start
+```
+- Press `a` in the terminal to launch on a connected Android phone or emulator.
+- Scan the QR code using the Expo Go client app.
+
+### Building Standalone Release APK
+
+To compile an optimized, self-contained Android Release APK for physical devices:
+
+```powershell
+Set-Location android
+.\gradlew.bat assembleRelease
+```
+
+The resulting signed APK will be output to:
+```text
+android\app\build\outputs\apk\release\app-release.apk
+```
+
+To install directly to a connected device via ADB:
+```powershell
+adb install -r android\app\build\outputs\apk\release\app-release.apk
+```
+
+---
+
+## 🎨 UI/UX & Design Philosophy
+
+ParaPo! is engineered under strict **Accessibility & Automotive-Inspired Design Guardrails**:
+
+1. **Unboxed Mobile-First Canvas:** Zero heavy rectangular card wrappers or box-inside-a-box borders. Controls float gracefully over an absolute `#000000` dark backdrop.
+2. **Icon-First Ergonomics:** Obvious actions use clean, self-describing vector glyphs without redundant button outlines or duplicate rows.
+3. **Generous Typography:** Large, readable Filipino commuters headers and high-contrast labels designed to be instantly legible under glaring sunlight or bumpy transit rides.
+4. **Immediate Tactile Feedback:** Every card press and speech trigger is paired with heavy haptic impact (`Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)`), spring scale bounce (`0.94 -> 1.0`), and glowing text highlights.
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions to make commuter transit more accessible for everyone!
+
+1. Fetch and checkout `main-dev`:
    ```bash
-   npx expo start
+   git fetch && git checkout main-dev && git pull
+   ```
+2. Create your feature branch following [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
+   ```bash
+   git checkout -b feat/your-feature-name main-dev
+   ```
+3. Commit your changes:
+   ```bash
+   git commit -m "feat(module): describe your feature concisely"
+   ```
+4. Push and submit a Pull Request to `main-dev`:
+   ```bash
+   git push -u origin feat/your-feature-name
    ```
 
-5. Choose a launch option: emulator/simulator, dev build, or Expo Go.  
-6. Begin development by editing files under the **app/** directory.
+---
 
-### Map Setup (PUV Commute Mode)
+## 👥 Authors
 
-PUV Commute Mode uses OpenStreetMap tiles via `react-native-maps`.
-
-- On web, the map is not available (native-only). You will see a placeholder message instead.
-- On iOS/Android, you can tap on the map to set your destination (a marker will appear).
-
-> Note (temporary workaround): The OSM public demo tile server blocked our app for automated / unidentified usage. We added MapTiler support: if `expo.extra.MAPTILER_KEY` is set in `app.json` the app loads MapTiler tiles; if it is blank, it falls back to OSM demo tiles for development only and logs a warning. Each dev should add the MapTiler key locally (do not commit the real key) to avoid future throttling.
-
-**Troubleshooting:**
-
-- If you see a bundling error about native-only modules on web, this is expected. The app will show a placeholder instead of the map on web.
-- For more info, see [react-native-maps docs](https://github.com/react-native-maps/react-native-maps) and [Expo maps guide](https://docs.expo.dev/versions/latest/sdk/map-view/).
-
-[⬆️ Back to Top](#table-of-contents)
+- **Ralph Cajipe** – [![GitHub](https://img.shields.io/badge/-181717?logo=github&style=flat-square)](https://github.com/ralphcajipe) [![Email](https://img.shields.io/badge/-Email-D14836?logo=gmail&logoColor=white&style=flat-square)](mailto:ralphcajipe@gmail.com)
+- **Dhanco Mendoza** – [![GitHub](https://img.shields.io/badge/-181717?logo=github&style=flat-square)](https://github.com/dhnxx) [![Email](https://img.shields.io/badge/-Email-D14836?logo=gmail&logoColor=white&style=flat-square)](mailto:dhancomendoza@gmail.com)
+- **Stephen Camilon** – [![GitHub](https://img.shields.io/badge/-181717?logo=github&style=flat-square)](https://github.com/Stephencamilon) [![Email](https://img.shields.io/badge/-Email-D14836?logo=gmail&logoColor=white&style=flat-square)](mailto:stephencamilon267@gmail.com)
 
 ---
 
-## Tests
+## 📦 Version History
 
-> _No tests configured yet._  
-
-[⬆️ Back to Top](#table-of-contents)
-
----
-
-## Roadmap
-
-- Registration & development  
-- Build & test  
-- QA  
-- Approvals  
-- ASO (App Store Optimization)  
-- App submission  
-- Release  
-
-[⬆️ Back to Top](#table-of-contents)
+| Version | Date | Highlights |
+| :--- | :--- | :--- |
+| **v1.0.0** | October 2026 | **Production Release:** Tesla-inspired unboxed UI, 5 original geometric vector flashcard animations, ChatGPT Voice Mode orb, 100% offline local neural Filipino TTS engine, Google Maps WebView with smart intent routing, in-app LTFRB fare calculator, and PWD ID Vault. |
 
 ---
 
-## Contributing
+## 📄 License
 
-- Fetch & switch to `main-dev`  
-
-  ```bash
-  git fetch && git checkout main-dev && git pull
-  ```
-
-- Create your branch based from `main-dev`  
-
-  ```bash
-  git checkout -b <your-name>-dev main-dev
-  ```
-
-- Publish your local branch to the remote repository  
-
-  ```bash
-  git push -u origin <your-name>-dev
-  ```
-
-- Before you push your commits for Pull (Merge) Requests, make sure to always pull the latest changes from `main-dev` while on your branch.
-
-   ```bash
-   git pull origin main-dev
-   git push -u origin <your-name>-dev
-   ```
-
-- Open a PR on GitHub: base is `main-dev`, compare is `<your-name>-dev`
-
-[⬆️ Back to Top](#table-of-contents)
-
----
-
-## Authors
-
-- **Ralph Cajipe** [![GitHub](https://img.shields.io/badge/-181717?logo=github&style=flat-square)](https://github.com/ralphcajipe) | [![Email](https://img.shields.io/badge/-Email-D14836?logo=gmail&logoColor=white&style=flat-square)](mailto:ralphcajipe@gmail.com)
-- **Dhanco Mendoza** [![GitHub](https://img.shields.io/badge/-181717?logo=github&style=flat-square)](https://github.com/dhnxx) | [![Email](https://img.shields.io/badge/-Email-D14836?logo=gmail&logoColor=white&style=flat-square)](mailto:dhancomendoza@gmail.com)
-- **Stephen Camilon** [![GitHub](https://img.shields.io/badge/-181717?logo=github&style=flat-square)](https://github.com/Stephencamilon) | [![Email](https://img.shields.io/badge/-Email-D14836?logo=gmail&logoColor=white&style=flat-square)](mailto:stephencamilon267@gmail.com)
-
-[⬆️ Back to Top](#table-of-contents)
-
----
-
-## Acknowledgments
-
-- _to be updated_
-
-[⬆️ Back to Top](#table-of-contents)
-
----
-
-## Version History
-
-| Version | Release Date | Description                   | Developers |
-| ------- | ------------ | ----------------------------- | ---------- |
-| v1.0.0  | 2025-TBA-TBA   | initial release              | name      |
-
-[⬆️ Back to Top](#table-of-contents)
+This project is licensed under the [MIT License](LICENSE).
