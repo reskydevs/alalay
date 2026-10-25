@@ -1,4 +1,4 @@
-import usePUVController from "@/app/logic/useCommute";
+import usePUVController, { computeVehicleFare, formatFare } from "@/app/logic/useCommute";
 import naturalVoiceService from "@/app/services/naturalVoiceService";
 import FlashcardScene, { SceneType } from "@/components/FlashcardScene";
 import VoiceOrb from "@/components/VoiceOrb";
@@ -8,6 +8,7 @@ import React, { useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
+  Linking,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -19,7 +20,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { WebView } from "react-native-webview";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -53,7 +53,7 @@ const FLASHCARD_SLIDES: FlashcardData[] = [
     id: "discount",
     label: "20% DISCOUNT",
     phrase: "PWD / SENIOR",
-    subtext: "Statutory 20% discount",
+    subtext: "20% discount (PWD, Senior, Student)",
     speechText: "May discount po ako bilang PWD o Senior Citizen. Bayad po.",
     accent: "#38BDF8",
   },
@@ -96,6 +96,7 @@ export default function HomeScreen() {
   const [showFareModal, setShowFareModal] = useState(false);
   const [showMatrixModal, setShowMatrixModal] = useState(false);
   const [showLtfrbWebViewModal, setShowLtfrbWebViewModal] = useState(false);
+  const [ltfrbTableTab, setLtfrbTableTab] = useState<"traditional" | "modern" | "uv">("traditional");
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
@@ -262,7 +263,7 @@ export default function HomeScreen() {
                   Fare Guide
                 </Text>
                 <Text className="text-[#8E8E93] text-base font-medium mt-0.5">
-                  ₱{fareBreakdown.totalFare.toFixed(0)} • {selectedDistanceKm} km
+                  ₱{formatFare(fareBreakdown.totalFare)} • {selectedDistanceKm} km
                   {hasDiscount ? " (-20% discount)" : ""}
                 </Text>
               </View>
@@ -270,14 +271,15 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={24} color="#636366" />
           </TouchableOpacity>
 
-          {/* Quick Vehicle Type Selector */}
+          {/* Quick Vehicle Type Selector with Dynamic Real-Time Distance Fares */}
           <View className="flex-row items-center justify-between mt-3 gap-2">
             {[
-              { id: "traditional_puj", label: "Jeepney", base: "₱13" },
-              { id: "modern_puj", label: "Modern PUV", base: "₱15" },
-              { id: "uv_express", label: "UV Express", base: "₱20" },
+              { id: "traditional", matchIds: ["traditional", "traditional_puj"], label: "Jeepney" },
+              { id: "modern", matchIds: ["modern", "modern_puj"], label: "Modern PUV" },
+              { id: "uv", matchIds: ["uv", "uv_express"], label: "UV Express" },
             ].map((v) => {
-              const isSelected = commuteMode === v.id;
+              const isSelected = v.matchIds.includes(commuteMode);
+              const computedFare = computeVehicleFare(v.id, selectedDistanceKm, hasDiscount);
               return (
                 <TouchableOpacity
                   key={v.id}
@@ -301,12 +303,26 @@ export default function HomeScreen() {
                   >
                     {v.label}
                   </Text>
-                  <Text className="text-xs text-[#71717A] mt-0.5 font-medium">
-                    {v.base} base
+                  <Text
+                    className={`text-base font-black mt-0.5 ${
+                      isSelected ? "text-amber-400" : "text-white"
+                    }`}
+                  >
+                    ₱{formatFare(computedFare)}
                   </Text>
                 </TouchableOpacity>
               );
             })}
+          </View>
+
+          {/* Transparency & Majority Fleet Standard Disclosure */}
+          <View className="flex-row items-center mt-2.5 px-1 justify-between">
+            <View className="flex-row items-center flex-1 mr-2">
+              <Ionicons name="information-circle-outline" size={14} color="#71717A" />
+              <Text className="text-[#71717A] text-xs font-medium ml-1.5" numberOfLines={1}>
+                LTFRB Sept 28, 2026 Guide • Traditional Road Majority Reference
+              </Text>
+            </View>
           </View>
 
           {/* Quick Distance Selector Pills */}
@@ -463,33 +479,38 @@ export default function HomeScreen() {
             <View className="flex-row items-baseline justify-between mb-8">
               <Text className="text-[#8E8E93] text-xl font-medium">Estimated Fare</Text>
               <Text className="text-white font-black text-6xl">
-                ₱{fareBreakdown.totalFare.toFixed(0)}
+                ₱{formatFare(fareBreakdown.totalFare)}
               </Text>
             </View>
 
             {/* Vehicle Mode Selector */}
             <View className="flex-row gap-3 mb-6">
               {[
-                { id: "traditional_puj", label: "Jeepney" },
-                { id: "modern_puj", label: "Modern PUV" },
-                { id: "uv_express", label: "UV Express" },
-              ].map((v) => (
-                <TouchableOpacity
-                  key={v.id}
-                  onPress={() => setCommuteMode(v.id as any)}
-                  className={`flex-1 py-3 rounded-2xl items-center ${
-                    commuteMode === v.id ? "bg-[#27272A]" : "bg-[#141416]"
-                  }`}
-                >
-                  <Text
-                    className={`font-semibold ${
-                      commuteMode === v.id ? "text-white" : "text-[#8E8E93]"
+                { id: "traditional", matchIds: ["traditional", "traditional_puj"], label: "Jeepney" },
+                { id: "modern", matchIds: ["modern", "modern_puj"], label: "Modern PUV" },
+                { id: "uv", matchIds: ["uv", "uv_express"], label: "UV Express" },
+              ].map((v) => {
+                const isSelected = v.matchIds.includes(commuteMode);
+                return (
+                  <TouchableOpacity
+                    key={v.id}
+                    onPress={() => setCommuteMode(v.id as any)}
+                    className={`flex-1 py-3 rounded-2xl items-center border ${
+                      isSelected
+                        ? "bg-[#27272A] border-white"
+                        : "bg-[#141416] border-[#27272A]"
                     }`}
                   >
-                    {v.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      className={`font-semibold ${
+                        isSelected ? "text-white font-bold" : "text-[#8E8E93]"
+                      }`}
+                    >
+                      {v.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Distance Adjuster */}
@@ -562,30 +583,155 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* LTFRB IN-APP WEBVIEW MODAL */}
+      {/* NATIVE OFFLINE LTFRB RATE TABLE MODAL */}
       <Modal
         visible={showLtfrbWebViewModal}
         animationType="slide"
         onRequestClose={() => setShowLtfrbWebViewModal(false)}
       >
-        <View className="flex-1 bg-[#000000]">
-          <View className="px-6 pt-12 pb-4 flex-row items-center justify-between border-b border-[#1C1C1E]">
-            <View>
-              <Text className="text-white text-xl font-bold">LTFRB Official Rates</Text>
-              <Text className="text-[#8E8E93] text-xs">Official Fare Matrix</Text>
+        <View className="flex-1 bg-[#000000] pt-12">
+          {/* Modal Header */}
+          <View className="px-6 pb-4 flex-row items-center justify-between border-b border-[#27272A]">
+            <View className="flex-1 mr-4">
+              <Text className="text-white text-2xl font-black">LTFRB Official Rates</Text>
+              <Text className="text-[#A1A1AA] text-xs mt-0.5 font-medium">
+                General Fare Guide • Effective Sept 28, 2026
+              </Text>
             </View>
             <TouchableOpacity
               onPress={() => setShowLtfrbWebViewModal(false)}
               hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              className="p-1.5 rounded-full bg-[#1C1C1E]"
             >
-              <Ionicons name="close" size={28} color="#FFFFFF" />
+              <Ionicons name="close" size={26} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-          <WebView
-            source={{ uri: "https://ltfrb.gov.ph/fare-rates/" }}
-            startInLoadingState={true}
-            className="flex-1"
-          />
+
+          {/* Vehicle Category Tabs */}
+          <View className="px-6 pt-4 pb-2">
+            <View className="flex-row bg-[#141416] p-1 rounded-2xl border border-[#27272A]">
+              {[
+                { id: "traditional", label: "Jeepney (PUJ)" },
+                { id: "modern", label: "Modern PUV" },
+                { id: "uv", label: "UV Express" },
+              ].map((tab) => {
+                const isActive = ltfrbTableTab === tab.id;
+                return (
+                  <TouchableOpacity
+                    key={tab.id}
+                    onPress={() => {
+                      try {
+                        Haptics.selectionAsync();
+                      } catch {}
+                      setLtfrbTableTab(tab.id as any);
+                    }}
+                    className={`flex-1 py-2.5 rounded-xl items-center ${
+                      isActive ? "bg-white" : "bg-transparent"
+                    }`}
+                  >
+                    <Text
+                      className={`font-bold text-xs ${
+                        isActive ? "text-black" : "text-[#A1A1AA]"
+                      }`}
+                    >
+                      {tab.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Official Formula Summary & Policy Rule */}
+            <View className="bg-[#141416] p-3.5 rounded-2xl border border-[#27272A] mt-3">
+              <View className="flex-row items-center justify-between mb-1">
+                <Text className="text-white text-xs font-bold uppercase tracking-wider">
+                  {ltfrbTableTab === "traditional" && "Traditional PUJ (Road Majority Standard)"}
+                  {ltfrbTableTab === "modern" && "Aircon Modern & Electric PUJ Standard"}
+                  {ltfrbTableTab === "uv" && "Traditional UV Express Standard"}
+                </Text>
+                <Text className="text-amber-400 text-xs font-semibold">25¢ Rounding</Text>
+              </View>
+              <Text className="text-[#A1A1AA] text-xs leading-relaxed">
+                {ltfrbTableTab === "traditional" &&
+                  "Base Fare: ₱14.00 (First 4.0 km) + ₱2.00/succeeding km. 20% Discount (PWD/Senior/Student): ₱11.25 base + ₱1.60/km."}
+                {ltfrbTableTab === "modern" &&
+                  "Base Fare: ₱17.00 (First 4.0 km) + ₱2.40/succeeding km. 20% Discount: ₱13.50 base + ₱1.92/km."}
+                {ltfrbTableTab === "uv" &&
+                  "Flat Rate: ₱2.60 per kilometer (No 4km base). 20% Discount: ₱2.08 per kilometer. Reflects standard road fleet."}
+              </Text>
+            </View>
+          </View>
+
+          {/* Table Header */}
+          <View className="px-6 py-2.5 flex-row items-center border-b border-[#27272A] bg-[#0A0A0C]">
+            <Text className="text-[#8E8E93] text-xs font-bold flex-1">DISTANCE</Text>
+            <Text className="text-[#8E8E93] text-xs font-bold w-24 text-right">REGULAR</Text>
+            <Text className="text-[#38BDF8] text-xs font-bold w-28 text-right">20% DISCOUNT</Text>
+          </View>
+
+          {/* Scrollable Matrix Rows (1 to 25 km) */}
+          <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
+            {ltfrbMatrix.map((row) => {
+              const isCurrentSelected = row.km === selectedDistanceKm;
+              let reg = row.regularTraditional;
+              let disc = row.discountTraditional;
+              if (ltfrbTableTab === "modern") {
+                reg = row.regularModern;
+                disc = row.discountModern;
+              } else if (ltfrbTableTab === "uv") {
+                reg = row.regularUV;
+                disc = row.discountUV;
+              }
+
+              return (
+                <View
+                  key={row.km}
+                  className={`flex-row items-center py-3.5 border-b border-[#1C1C1E] ${
+                    isCurrentSelected ? "bg-[#1C1C1E] px-2 rounded-xl my-0.5 border-amber-400/40" : ""
+                  }`}
+                >
+                  <View className="flex-1 flex-row items-center">
+                    <Text className={`font-bold text-sm ${isCurrentSelected ? "text-amber-400" : "text-white"}`}>
+                      {row.km} km
+                    </Text>
+                    {isCurrentSelected && (
+                      <View className="ml-2 bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/50">
+                        <Text className="text-amber-400 text-[10px] font-bold">SELECTED</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text className="text-white font-bold text-sm w-24 text-right">
+                    ₱{formatFare(reg)}
+                  </Text>
+                  <Text className="text-[#38BDF8] font-black text-sm w-28 text-right">
+                    ₱{formatFare(disc)}
+                  </Text>
+                </View>
+              );
+            })}
+          </ScrollView>
+
+          {/* Bottom Official Hotline & Source Links */}
+          <View className="px-6 py-4 border-t border-[#27272A] bg-[#0A0A0C]">
+            <View className="flex-row items-center justify-between gap-3">
+              <TouchableOpacity
+                onPress={() => Linking.openURL("tel:1342").catch(() => {})}
+                className="flex-1 py-3 px-3 rounded-xl bg-[#1C1C1E] flex-row items-center justify-center border border-[#27272A]"
+              >
+                <Ionicons name="call" size={16} color="#22C55E" />
+                <Text className="text-white text-xs font-bold ml-2">Hotline 1342</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() =>
+                  Linking.openURL("https://ltfrb.gov.ph/fare-rates/").catch(() => {})
+                }
+                className="flex-1 py-3 px-3 rounded-xl bg-[#1C1C1E] flex-row items-center justify-center border border-[#27272A]"
+              >
+                <Ionicons name="open-outline" size={16} color="#38BDF8" />
+                <Text className="text-white text-xs font-bold ml-2">LTFRB Portal</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </Modal>
     </View>
