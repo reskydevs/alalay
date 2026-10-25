@@ -1,29 +1,25 @@
 {
   "expo": {
-    "name": "parapo",
-    "slug": "parapo",
+    "name": "Alalay",
+    "slug": "alalay",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "parapo",
+    "scheme": "alalay",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.reskydevs.parapo",
+      "bundleIdentifier": "com.reskydevs.alalay",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "ParaPo! uses your location to calculate PUV fares, find nearby routes, and alert you before your drop-off.",
-        "NSPhotoLibraryUsageDescription": "ParaPo! needs photo library access to store and display your PWD, Senior Citizen, or Student ID card for fare discounts.",
-        "NSUserTrackingUsageDescription": "ParaPo! uses this identifier to provide non-intrusive commute-relevant advertisements and keep fares accessible."
+        "NSLocationWhenInUseUsageDescription": "Alalay uses your location to calculate PUV fares, find nearby routes, and alert you before your drop-off.",
+        "NSPhotoLibraryUsageDescription": "Alalay needs photo library access to store and display your PWD, Senior Citizen, or Student ID card for fare discounts.",
+        "NSUserTrackingUsageDescription": "Alalay uses this identifier to provide non-intrusive commute-relevant advertisements and keep fares accessible."
       }
     },
     "android": {
-      "package": "com.reskydevs.parapo",
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyDummyKeyForParaPoPhilippinesMapKey00"
-        }
-      },
+      "package": "com.reskydevs.alalay",
+
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"

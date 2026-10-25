@@ -36,7 +36,7 @@ export default function AdBanner({
         </View>
         <View className="flex-1">
           <Text className="text-xs font-semibold text-gray-800" numberOfLines={1}>
-            ParaPo! Libreng Gabay sa Commute
+            Alalay: Libreng Gabay sa Commute
           </Text>
           <Text className="text-[10px] text-gray-500" numberOfLines={1}>
             LTFRB Standard Rates 2026 • Ligtas at Maaasahang Byahe
