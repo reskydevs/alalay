@@ -147,22 +147,15 @@ export default function HomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#000000] pt-12">
+    <View className="flex-1 bg-[#000000] pt-8">
       <StatusBar barStyle="light-content" />
-
-      {/* Minimalist Tesla Header — No Upper-Right Volume Button */}
-      <View className="px-6 pb-2">
-        <Text className="text-white font-bold text-3xl tracking-tight">
-          ParaPo!
-        </Text>
-      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 36 }}
+        contentContainerStyle={{ paddingBottom: 36, paddingTop: 4 }}
       >
-        {/* HERO: SWIPEABLE FLASHCARDS WITH BOUNCE & GLOW FEEDBACK */}
-        <View className="mt-1">
+        {/* HERO: SWIPEABLE FLASHCARDS (UNBOXED FULL CANVAS) */}
+        <View className="mt-2">
           <ScrollView
             ref={scrollRef}
             horizontal
@@ -178,7 +171,7 @@ export default function HomeScreen() {
                 activeOpacity={0.92}
                 onPress={() => handleOpenFullscreen(slide)}
                 style={{ width: SCREEN_WIDTH }}
-                className="px-6 py-4 justify-center items-center"
+                className="px-6 py-2 justify-center items-center"
               >
                 <Animated.View
                   style={{
@@ -193,14 +186,16 @@ export default function HomeScreen() {
                     isSpeaking={isSpeaking}
                   />
 
-                  <Text className="text-[#8E8E93] text-lg font-bold uppercase tracking-widest mt-3">
+                  <Text className="text-[#8E8E93] text-lg font-bold uppercase tracking-widest mt-4">
                     {slide.label}
                   </Text>
 
+                  {/* Luminous Glow ONLY on Uppercase TEXT when Speaking */}
                   <Text
                     style={{
                       textShadowColor: isSpeaking ? slide.accent : "transparent",
-                      textShadowRadius: isSpeaking ? 24 : 0,
+                      textShadowOffset: { width: 0, height: 0 },
+                      textShadowRadius: isSpeaking ? 36 : 0,
                     }}
                     className="text-white font-black text-6xl tracking-tight text-center mt-1"
                   >
@@ -216,7 +211,7 @@ export default function HomeScreen() {
           </ScrollView>
 
           {/* Paging Dots */}
-          <View className="flex-row justify-center items-center mt-2 gap-2.5">
+          <View className="flex-row justify-center items-center mt-3 gap-2.5">
             {FLASHCARD_SLIDES.map((_, i) => (
               <View
                 key={i}
@@ -278,7 +273,7 @@ export default function HomeScreen() {
           <View className="flex-1 bg-[#000000] justify-between px-6 py-12">
             <StatusBar hidden />
 
-            {/* Single Top-Right Close Icon (No Duplicate Volume Button) */}
+            {/* Single Top-Right Close Icon */}
             <View className="flex-row justify-end items-center px-2">
               <TouchableOpacity
                 onPress={() => setFullscreenCard(null)}
@@ -312,7 +307,8 @@ export default function HomeScreen() {
                 <Text
                   style={{
                     textShadowColor: isSpeaking ? fullscreenCard.accent : "transparent",
-                    textShadowRadius: isSpeaking ? 28 : 0,
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: isSpeaking ? 44 : 0,
                   }}
                   className="text-white font-black text-6xl tracking-tight text-center leading-tight"
                 >

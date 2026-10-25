@@ -4,33 +4,22 @@ import * as Location from "expo-location";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   BackHandler,
-  Keyboard,
-  Linking,
   StatusBar,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { WebView, WebViewMessageEvent, WebViewNavigation } from "react-native-webview";
 
 const DEFAULT_MAP_URL =
-  "https://www.google.com/maps/@14.5995,120.9842,13z?hl=en&entry=ml&utm_campaign=ml-sr";
+  "https://www.google.com/maps/@14.5995,120.9842,15z?hl=en&entry=ml&utm_campaign=ml-sr";
 
 export default function WebMapTab() {
   const webViewRef = useRef<WebView>(null);
-  const [origin, setOrigin] = useState("");
-  const [destination, setDestination] = useState("");
-  const [inputsVisible, setInputsVisible] = useState(true);
   const [mapUrl, setMapUrl] = useState(DEFAULT_MAP_URL);
   const [canGoBack, setCanGoBack] = useState(false);
   const [isSignInPage, setIsSignInPage] = useState(false);
-
-  const originRef = useRef("");
-  originRef.current = origin;
-
-  const destinationRef = useRef("");
-  destinationRef.current = destination;
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const currentWebUrlRef = useRef(DEFAULT_MAP_URL);
   const lastMapsUrlRef = useRef(DEFAULT_MAP_URL);
@@ -98,69 +87,51 @@ export default function WebMapTab() {
     return () => sub.remove();
   }, [canGoBack, isSignInPage, handleGoBack]);
 
+  // Request high-accuracy GPS and initialize map centered directly on user's location
   useEffect(() => {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === "granted") {
           const loc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
+            accuracy: Location.Accuracy.High,
           });
           const { latitude, longitude } = loc.coords;
-          const initialUrl = `https://www.google.com/maps/@${latitude},${longitude},15z?hl=en&entry=ml&utm_campaign=ml-sr`;
+          setUserCoords({ lat: latitude, lng: longitude });
+          const initialUrl = `https://www.google.com/maps/@${latitude},${longitude},16z?hl=en&entry=ml&utm_campaign=ml-sr`;
           lastMapsUrlRef.current = initialUrl;
           currentWebUrlRef.current = initialUrl;
           setMapUrl(initialUrl);
-
-          Location.reverseGeocodeAsync(loc.coords)
-            .then((res) => {
-              if (res?.[0]) {
-                const label = [res[0].name || res[0].street, res[0].city]
-                  .filter(Boolean)
-                  .join(", ");
-                if (label) setOrigin(label);
-              }
-            })
-            .catch(() => {});
         }
       } catch {}
     })();
   }, []);
 
-  const buildDirectionsUrl = useCallback((destQuery: string, origQuery?: string) => {
-    const start = (origQuery ?? originRef.current).trim();
-    const end = destQuery.trim();
-    if (!end && !start) {
-      return `https://www.google.com/maps/dir/?hl=en&entry=ml&utm_campaign=ml-sr`;
-    }
-    if (start && end) {
+  const buildDirectionsUrl = useCallback(
+    (destQuery: string, origQuery?: string) => {
+      const start = origQuery?.trim() || (userCoords ? `${userCoords.lat},${userCoords.lng}` : "");
+      const end = destQuery.trim();
+      if (!end && !start) {
+        return `https://www.google.com/maps/dir/?hl=en&entry=ml&utm_campaign=ml-sr`;
+      }
+      if (start && end) {
+        return `https://www.google.com/maps/dir/${encodeURIComponent(
+          start
+        )}/${encodeURIComponent(end)}?hl=en&entry=ml&utm_campaign=ml-sr`;
+      }
+      if (end) {
+        return `https://www.google.com/maps/dir//${encodeURIComponent(
+          end
+        )}?hl=en&entry=ml&utm_campaign=ml-sr`;
+      }
       return `https://www.google.com/maps/dir/${encodeURIComponent(
         start
-      )}/${encodeURIComponent(end)}?hl=en&entry=ml&utm_campaign=ml-sr`;
-    }
-    if (end) {
-      return `https://www.google.com/maps/dir//${encodeURIComponent(
-        end
-      )}?hl=en&entry=ml&utm_campaign=ml-sr`;
-    }
-    return `https://www.google.com/maps/search/${encodeURIComponent(
-      start
-    )}?hl=en&entry=ml&utm_campaign=ml-sr`;
-  }, []);
+      )}/?hl=en&entry=ml&utm_campaign=ml-sr`;
+    },
+    [userCoords]
+  );
 
-  const handleRouteSearch = () => {
-    Keyboard.dismiss();
-    try {
-      Haptics.selectionAsync();
-    } catch {}
-    const start = origin.trim();
-    const end = destination.trim();
-    if (!start && !end) return;
-    navigateWebViewTo(buildDirectionsUrl(end, start));
-  };
-
-  // Runs BEFORE Google Maps scripts load: sets Google Maps' own internal localStorage flags
-  // so it disables app-intent hijacking ("decommissionedagmm") and enables full in-web Directions
+  // Runs BEFORE Google Maps scripts load: sets internal flags for native web routing
   const INJECTED_BEFORE_LOAD_JS = `
     (function() {
       try {
@@ -179,12 +150,12 @@ export default function WebMapTab() {
     true;
   `;
 
-  // Runs after page load: dismisses any app banners, rewrites intent:// anchors,
-  // and ensures Directions & Start buttons always transition smoothly in the WebView
+  // Runs after page load: auto-clicks "Your location", auto-expands Directions drawer (Drive, Two-wheeler, Walk),
+  // suppresses app banners, and hooks intent links
   const INJECTED_JS = `
     (function() {
-      if (window.__parapoMapsHooked) return;
-      window.__parapoMapsHooked = true;
+      if (window.__parapoNavHooked) return;
+      window.__parapoNavHooked = true;
 
       try {
         localStorage.setItem('decommissionedagmm', Date.now().toString());
@@ -198,22 +169,68 @@ export default function WebMapTab() {
         return window;
       };
 
-      function getCurrentPlaceTitle() {
-        var m = window.location.pathname.match(/\\/maps\\/place\\/([^/?#]+)/);
-        if (m && m[1]) {
-          try {
-            return decodeURIComponent(m[1].replace(/\\+/g, ' '));
-          } catch (e) {}
-        }
-        var headings = document.querySelectorAll('h1, [role="heading"]');
-        for (var i = 0; i < headings.length; i++) {
-          var t = (headings[i].innerText || headings[i].textContent || '').trim();
-          if (t && t.toLowerCase() !== 'google maps' && t.toLowerCase() !== 'directions') {
-            return t;
+      // Auto-trigger "Your location" and expand "Directions: Drive, Two-wheeler, Walk"
+      function triggerLocationAndDirectionsDrawer() {
+        var buttons = document.querySelectorAll('button, div[role="button"], a, span');
+
+        // 1. Activate "Your location" GPS button
+        for (var i = 0; i < buttons.length; i++) {
+          var aria = (buttons[i].getAttribute('aria-label') || '').toLowerCase();
+          var dataTip = (buttons[i].getAttribute('data-tooltip') || '').toLowerCase();
+          var jsact = (buttons[i].getAttribute('jsaction') || '').toLowerCase();
+          if (
+            aria.indexOf('your location') !== -1 ||
+            dataTip.indexOf('your location') !== -1 ||
+            jsact.indexOf('my_location') !== -1 ||
+            aria === 're-center' ||
+            aria.indexOf('lokasyon mo') !== -1
+          ) {
+            buttons[i].click();
+            break;
           }
         }
-        return '';
+
+        // 2. Expand "Quick actions / Directions: Drive, Two-wheeler, Walk" drawer if collapsed
+        for (var j = 0; j < buttons.length; j++) {
+          var txt = (buttons[j].innerText || buttons[j].textContent || '').trim().toLowerCase();
+          if (
+            txt.indexOf('quick actions') !== -1 ||
+            txt.indexOf('tap to see') !== -1 ||
+            txt === 'directions' ||
+            txt.indexOf('mga direksyon') !== -1
+          ) {
+            buttons[j].click();
+            break;
+          }
+        }
       }
+
+      // Execute on startup with retries as map DOM stabilizes
+      setTimeout(triggerLocationAndDirectionsDrawer, 800);
+      setTimeout(triggerLocationAndDirectionsDrawer, 1800);
+      setTimeout(triggerLocationAndDirectionsDrawer, 3200);
+
+      function cleanGoogleMapsDom() {
+        var promo = document.querySelector('.ml-persistent-promo-banner, #CfMG9b');
+        if (promo) {
+          promo.style.display = 'none';
+        }
+        var buttons = document.querySelectorAll('button, a, div[role="button"], span');
+        for (var i = 0; i < buttons.length; i++) {
+          var txt = (buttons[i].innerText || buttons[i].textContent || '').trim().toLowerCase();
+          if (
+            txt === 'keep using web' ||
+            txt === 'stay on web' ||
+            txt === 'use the web' ||
+            txt === 'manatili sa web' ||
+            txt === 'gamitin ang web'
+          ) {
+            buttons[i].click();
+          }
+        }
+      }
+      cleanGoogleMapsDom();
+      setInterval(cleanGoogleMapsDom, 600);
 
       function expandRouteStepsInPage() {
         var els = document.querySelectorAll('button, [role="button"], a, span, div');
@@ -257,54 +274,26 @@ export default function WebMapTab() {
         if (!label) return;
 
         var urlBefore = window.location.href;
-        var placeTitle = getCurrentPlaceTitle();
-
         setTimeout(function() {
-          // If already on /maps/dir/ and user tapped Start, expand the step-by-step route preview
           if (window.location.href.indexOf('/maps/dir/') !== -1 && label === 'start') {
             expandRouteStepsInPage();
             return;
           }
-          // If still not on /maps/dir/ after tapping Directions or Start on a place, trigger route in RN
           if (window.location.href.indexOf('/maps/dir/') === -1 && window.location.href === urlBefore) {
             if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
               window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: ' FORCE_DIRECTIONS',
+                type: 'FORCE_DIRECTIONS',
                 action: label,
-                placeTitle: placeTitle,
                 currentUrl: window.location.href
               }));
             }
           }
         }, 320);
       }, true);
-
-      function cleanGoogleMapsDom() {
-        var promo = document.querySelector('.ml-persistent-promo-banner, #CfMG9b');
-        if (promo) {
-          promo.style.display = 'none';
-        }
-        var buttons = document.querySelectorAll('button, a, div[role="button"], span');
-        for (var i = 0; i < buttons.length; i++) {
-          var txt = (buttons[i].innerText || buttons[i].textContent || '').trim().toLowerCase();
-          if (
-            txt === 'keep using web' ||
-            txt === 'stay on web' ||
-            txt === 'use the web' ||
-            txt === 'manatili sa web' ||
-            txt === 'gamitin ang web'
-          ) {
-            buttons[i].click();
-          }
-        }
-      }
-      cleanGoogleMapsDom();
-      setInterval(cleanGoogleMapsDom, 500);
     })();
     true;
   `;
 
-  // Converts any Google Maps intent://, maps.app.goo.gl, or comgooglemapsurl:// into an in-WebView /maps/dir/ URL
   const resolveMapsIntentToWebUrl = useCallback(
     (rawUrl: string): string | null => {
       let candidate = rawUrl;
@@ -345,7 +334,7 @@ export default function WebMapTab() {
         }
       }
 
-      const start = originRef.current.trim();
+      const start = userCoords ? `${userCoords.lat},${userCoords.lng}` : "";
 
       // 2. Check for google.navigation:q=... or daddr=... or destination=...
       const destParamMatch =
@@ -378,7 +367,7 @@ export default function WebMapTab() {
         } catch {}
       }
 
-      // 5. If the intent is already /maps/dir/..., strip dir_action=navigate and inject origin if empty
+      // 5. If the intent is already /maps/dir/..., strip dir_action=navigate
       if (candidate.includes("/maps/dir/")) {
         let cleanDir = candidate
           .replace(/^intent:\/\//, "https://")
@@ -398,15 +387,14 @@ export default function WebMapTab() {
         return cleanDir;
       }
 
-      // 6. If the intent is a bare camera link (/maps/@lat,lng...) from the Directions button
+      // 6. Bare camera link fallback
       if (candidate.includes("google.com/maps") || candidate.includes("maps.google.com")) {
-        const dest = destinationRef.current.trim();
-        return buildDirectionsUrl(dest, start);
+        return buildDirectionsUrl("", start);
       }
 
       return null;
     },
-    [buildDirectionsUrl]
+    [buildDirectionsUrl, userCoords]
   );
 
   const handleShouldStartLoad = (url: string): boolean => {
@@ -432,7 +420,6 @@ export default function WebMapTab() {
       const resolved = resolveMapsIntentToWebUrl(url);
       if (resolved) {
         if (wasAlreadyOnDir && resolved === currentWebUrlRef.current) {
-          // User tapped "Start" while already viewing the route -> expand step-by-step maneuvers
           webViewRef.current?.injectJavaScript(
             `if (window.__parapoExpandSteps) { window.__parapoExpandSteps(); } true;`
           );
@@ -467,11 +454,8 @@ export default function WebMapTab() {
     try {
       const payload = JSON.parse(event.nativeEvent.data);
       if (payload?.type?.trim() === "FORCE_DIRECTIONS") {
-        const placeTitle = (payload.placeTitle || "").trim();
         const currentUrl = payload.currentUrl || "";
-        const target =
-          (placeTitle && buildDirectionsUrl(placeTitle)) ||
-          resolveMapsIntentToWebUrl(currentUrl);
+        const target = resolveMapsIntentToWebUrl(currentUrl);
         if (target) {
           navigateWebViewTo(target);
         }
@@ -497,112 +481,37 @@ export default function WebMapTab() {
   };
 
   return (
-    <View className="flex-1 bg-[#000000] pt-11">
+    <View className="flex-1 bg-[#000000] pt-10">
       <StatusBar barStyle="light-content" />
 
-      {/* Minimal Header with Back Navigation */}
-      <View className="px-6 pb-2 flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          {(canGoBack || isSignInPage) && (
+      {/* Sleek Minimal Header (Back button only when needed, no black input boxes) */}
+      {(canGoBack || isSignInPage) && (
+        <View className="px-5 pb-2 flex-row items-center justify-between">
+          <TouchableOpacity
+            onPress={handleGoBack}
+            hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+            className="flex-row items-center"
+          >
+            <Ionicons name="arrow-back" size={26} color="#FFFFFF" />
+            <Text className="text-white font-semibold text-lg ml-2">
+              Back
+            </Text>
+          </TouchableOpacity>
+
+          {isSignInPage && (
             <TouchableOpacity
-              onPress={handleGoBack}
-              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
-              className="mr-4"
+              onPress={returnToMapsFromSignIn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+              <Text className="text-[#38BDF8] font-bold text-base">
+                Skip Sign-In
+              </Text>
             </TouchableOpacity>
           )}
-          <Text className="text-white font-bold text-3xl tracking-tight">
-            Navigation
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => setInputsVisible(!inputsVisible)}
-          hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
-        >
-          <Ionicons
-            name={inputsVisible ? "chevron-up" : "search-outline"}
-            size={28}
-            color="#FFFFFF"
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* One-Tap Escape Banner when Google Sign-In opens (e.g. after pressing Save) */}
-      {isSignInPage && (
-        <TouchableOpacity
-          onPress={returnToMapsFromSignIn}
-          activeOpacity={0.85}
-          className="mx-6 mb-2 py-3 px-4 bg-[#18181B] flex-row items-center justify-between rounded-xl"
-        >
-          <View className="flex-row items-center">
-            <Ionicons name="arrow-back-circle" size={24} color="#3B82F6" />
-            <Text className="text-white font-bold text-base ml-2.5">
-              Back to Google Maps
-            </Text>
-          </View>
-          <Text className="text-[#8E8E93] font-semibold text-sm">
-            Skip Sign-In
-          </Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Editable Starting Location & Destination Inputs */}
-      {inputsVisible && !isSignInPage && (
-        <View className="px-6 pb-3">
-          <View className="flex-row items-center py-2.5 border-b border-[#27272A]">
-            <Ionicons name="radio-button-on" size={18} color="#8E8E93" />
-            <TextInput
-              value={origin}
-              onChangeText={setOrigin}
-              placeholder="Starting location"
-              placeholderTextColor="#71717A"
-              className="flex-1 ml-3 text-white text-xl font-medium py-0"
-              returnKeyType="next"
-              onSubmitEditing={handleRouteSearch}
-            />
-            {origin.length > 0 && (
-              <TouchableOpacity
-                onPress={() => setOrigin("")}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="close-circle" size={20} color="#71717A" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View className="flex-row items-center py-2.5 border-b border-[#27272A] mt-1">
-            <Ionicons name="location-outline" size={20} color="#E82127" />
-            <TextInput
-              value={destination}
-              onChangeText={setDestination}
-              placeholder="Destination"
-              placeholderTextColor="#71717A"
-              className="flex-1 ml-3 text-white text-xl font-medium py-0"
-              returnKeyType="search"
-              onSubmitEditing={handleRouteSearch}
-            />
-            {destination.length > 0 && (
-              <TouchableOpacity
-                onPress={() => setDestination("")}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                className="mr-3"
-              >
-                <Ionicons name="close-circle" size={20} color="#71717A" />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              onPress={handleRouteSearch}
-              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
-            >
-              <Ionicons name="arrow-forward" size={26} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
         </View>
       )}
 
-      {/* Full-Bleed Interactive Google Maps Browser View */}
+      {/* Full-Bleed Interactive Google Maps Canvas */}
       <View className="flex-1 bg-[#000000]">
         <WebView
           ref={webViewRef}

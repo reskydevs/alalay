@@ -16,8 +16,6 @@ export default function FlashcardScene({
   isSpeaking = false,
 }: FlashcardSceneProps) {
   const primaryMotion = useRef(new Animated.Value(0)).current;
-  const pulseScale = useRef(new Animated.Value(1)).current;
-  const pulseOpacity = useRef(new Animated.Value(0.35)).current;
 
   useEffect(() => {
     primaryMotion.setValue(0);
@@ -38,45 +36,11 @@ export default function FlashcardScene({
       ])
     );
 
-    const pulseLoop = Animated.loop(
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(pulseScale, {
-            toValue: isSpeaking ? 1.28 : 1.14,
-            duration: isSpeaking ? 450 : 900,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseScale, {
-            toValue: 1,
-            duration: isSpeaking ? 450 : 900,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.timing(pulseOpacity, {
-            toValue: isSpeaking ? 0.75 : 0.45,
-            duration: isSpeaking ? 450 : 900,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseOpacity, {
-            toValue: 0.15,
-            duration: isSpeaking ? 450 : 900,
-            useNativeDriver: true,
-          }),
-        ]),
-      ])
-    );
-
     motionLoop.start();
-    pulseLoop.start();
-
     return () => {
       motionLoop.stop();
-      pulseLoop.stop();
     };
-  }, [isSpeaking, primaryMotion, pulseOpacity, pulseScale, sceneType]);
+  }, [isSpeaking, primaryMotion, sceneType]);
 
   const translateY = primaryMotion.interpolate({
     inputRange: [0, 1],
@@ -90,20 +54,18 @@ export default function FlashcardScene({
 
   return (
     <View className="w-full h-48 items-center justify-center overflow-hidden my-1">
-      {/* Radiant Background Pulse */}
-      <Animated.View
+      {/* Flat Background Canvas — Zero Glow on Visuals */}
+      <View
         style={{
           position: "absolute",
-          width: 156,
-          height: 156,
-          borderRadius: 78,
-          backgroundColor: accentColor,
-          opacity: pulseOpacity,
-          transform: [{ scale: pulseScale }],
+          width: 136,
+          height: 136,
+          borderRadius: 68,
+          backgroundColor: "#111113",
         }}
       />
 
-      {/* 1. STOP HERE (PARA PO!) — Raised Hand Gesture + Braking Beacon */}
+      {/* 1. STOP HERE (PARA PO!) — Raised Hand Gesture + Curbside Marker */}
       {sceneType === "stop" && (
         <Animated.View style={{ transform: [{ translateY }] }}>
           <Svg width="240" height="175" viewBox="0 0 240 175">

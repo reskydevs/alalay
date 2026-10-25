@@ -136,7 +136,7 @@ export default function VoicePromptsTab() {
           </TouchableOpacity>
         </View>
 
-        {/* VOICE PERSONALITY SELECTOR (Juan, Amihan, Tala, Bagwis, Sinag) */}
+        {/* VOICE MODEL SELECTOR (Voice 1, Voice 2, Voice 3) */}
         <View className="mt-1 mb-6">
           <ScrollView
             horizontal

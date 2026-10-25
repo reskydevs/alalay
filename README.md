@@ -1,7 +1,7 @@
 # ParaPo! 🚍✨
 
 > **Mobile-First Accessible Commuter Companion for Filipino Commuters & PWDs**  
-> Designed with a Tesla-inspired minimalist canvas, animated commuter flashcards, ChatGPT-inspired Voice Mode orb, local natural Filipino text-to-speech, and embedded transit navigation.
+> Designed with a Tesla-inspired minimalist canvas, animated commuter flashcards, ChatGPT-inspired Voice Mode orb, local natural Filipino text-to-speech, Google Maps transit navigation, and Google Wallet-style digital discount passes.
 
 ---
 
@@ -10,20 +10,25 @@
 <div align="center">
   <table>
     <tr>
-      <td align="center" width="33%">
+      <td align="center" width="25%">
         <img src="./docs/screenshots/commute_flashcards.png" alt="Commute Screen & Animated Flashcards" width="100%" />
         <br />
-        <b>Commute & Flashcard Scene</b>
+        <b>Commute & Voice Glow</b>
       </td>
-      <td align="center" width="33%">
+      <td align="center" width="25%">
         <img src="./docs/screenshots/navigation_maps.png" alt="In-App Transit Navigation" width="100%" />
         <br />
         <b>Transit Navigation & Directions</b>
       </td>
-      <td align="center" width="33%">
-        <img src="./docs/screenshots/voice_prompts.png" alt="Voice Prompts & Voice Orb" width="100%" />
+      <td align="center" width="25%">
+        <img src="./docs/screenshots/voice_prompts.png" alt="Voice Models & Custom Prompts" width="100%" />
         <br />
-        <b>Voice Models & Custom Prompts</b>
+        <b>Flashcards & Voice Models</b>
+      </td>
+      <td align="center" width="25%">
+        <img src="./docs/screenshots/my_id_wallet.png" alt="My ID Google Wallet Carousel" width="100%" />
+        <br />
+        <b>My ID (Wallet Carousel)</b>
       </td>
     </tr>
   </table>
@@ -55,38 +60,38 @@
 Public transport in the Philippines (jeepneys, modern PUVs, UV Express, and buses) relies heavily on verbal cues (*"Para po!"*, *"Bayad po!"*, *"Sukli po!"*) and fast-paced curbside interactions. For **Persons with Disabilities (PWDs)**—particularly deaf, hard-of-hearing, speech-impaired, or mobility-challenged commuters—navigating public transport can be stressful and exclusionary.
 
 **ParaPo!** bridges this accessibility barrier. Built with an unboxed, high-contrast dark aesthetic inspired by modern automotive software, ParaPo! combines:
-- **Instant Full-Bleed Animated Visual Cards** to show drivers and passengers what you need from across the vehicle.
+- **Instant Full-Bleed Animated Visual Cards** to show drivers and passengers what you need from across the vehicle with zero visual clutter.
 - **Local Natural Filipino Text-to-Speech** with prosody-normalized Filipino pronunciation and inclusive voice personalities.
-- **ChatGPT Voice Mode Orb** featuring pulsing 5-bar waveforms and tactile heavy haptic feedback.
-- **In-App Google Maps Navigation** with custom intent-handling for directions and step-by-step route previews without app bounces.
-- **LTFRB Fare Matrix & Offline Calculator** providing accurate fare computation for PUJs, Modern PUVs, and UV Express with statutory -20% PWD/Senior/Student discounts.
-- **Encrypted Local ID Vault** for displaying verified discount IDs with double-tap zoom and rotation.
+- **ChatGPT Voice Mode Orb** featuring pulsing 5-bar waveforms, tactile heavy haptic feedback, and glowing uppercase text highlights.
+- **In-App Google Maps Navigation** with automated GPS location centering, route mode selectors (Drive, Two-wheeler, Transit, Walk), and hardware back-gesture guards.
+- **LTFRB Fare Guide & Offline Calculator** providing accurate fare computation for PUJs, Modern PUVs, and UV Express with statutory -20% PWD/Senior/Student discounts.
+- **"My ID" Google Wallet-Style Digital Pass Carousel** with horizontal snapping cards, verified statutory discount badges, local photo storage, and fullscreen inspector modal with double-tap zoom and rotation.
 
 ---
 
 ## 🚀 Key Features
 
 ### 🎴 1. Visual Commuter Flashcards & Animated Scenes
-- **Original Geometric Vector Illustrations:** Context-specific animations tailored to Filipino commuter interactions:
+- **Original Geometric Flat-Vector Art:** Context-specific animations tailored to Filipino commuter interactions:
   - 🛑 **`PARA PO!` (`stop`):** Raised yellow open hand gesture inside a red stop octagon with roadside markers.
   - 💵 **`BAYAD PO!` (`payment`):** Crisp Philippine Peso banknote (`₱`) and sliding gold coins with animated motion chevrons.
   - 🪪 **`PWD / SENIOR` (`discount`):** Verified commuter pass card with an avatar and bold `-20%` discount badge.
   - 🪙 **`SUKLI PO!` (`change`):** Three Peso coins (`₱10`, `₱5`, `₱1`) dropping into an open receiving hand.
   - 🚏 **`SA TABI LANG!` (`curbside`):** Sleek commuter vehicle pulling up to a curbside pin and crosswalk.
+- **Targeted Glow Ergonomics:** Vector illustrations stay crisp and flat with zero ambient background glare, while the speaking text (`PARA PO!`, `BAYAD PO!`) and voice orb radiate a vibrant accent glow during speech.
 - **Fullscreen Takeover:** Tap any flashcard to launch a high-contrast, maximum-readability full-screen view readable from across the vehicle.
 
 ### 🎙️ 2. ChatGPT Voice Mode Orb & Natural Filipino TTS
 - **Interactive Voice Orb:** Large touch surface morphing into a glowing, pulsing sphere with 5 animated waveform bars when speaking.
 - **Natural Filipino Local Engine:** Uses on-device neural TTS engines (`fil` locale with intelligent phoneme prosody mapping) that runs 100% offline and free on modern mobile devices.
-- **Inclusive Voice Model Personalities:** Five natural voice options:
-  - `Juan` – Easygoing and versatile (Default)
-  - `Amihan` – Calming, gentle, and clear
-  - `Tala` – Bright, vibrant, and energetic
-  - `Bagwis` – Confident, grounded, and steady
-  - `Sinag` – Warm, radiant, and reassuring
+- **Generic Inclusive Voice Profiles:**
+  - `Voice 1` – Easygoing and versatile (Default)
+  - `Voice 2` – Bright and expressive
+  - `Voice 3` – Confident and clear
 
 ### 🗺️ 3. Full-Bleed In-App Transit Navigation
-- **Embedded Google Maps Web Browser:** Fully interactive map canvas with custom origin and destination inputs.
+- **Native Google Maps UX:** Fully interactive map canvas initialized directly to user's current GPS location without redundant top black input boxes.
+- **Interactive Direction Drawers:** Access route directions for Driving, Two-wheelers, Public Transit, and Walking directly inside the app.
 - **Smart Intent & Protocol Routing:** Intercepts Google Maps `intent://`, `maps.app.goo.gl`, and `comgooglemapsurl://` calls, seamlessly converting place cards and navigation requests into in-webview Directions routes without getting trapped in app stores.
 - **Google Sign-In Escape Guard:** Tapping "Save" automatically displays a prominent `"← Back to Google Maps (Skip Sign-In)"` banner, and connects to the Android hardware back gesture so users are never stuck in login redirects.
 
@@ -95,9 +100,14 @@ Public transport in the Philippines (jeepneys, modern PUVs, UV Express, and buse
 - **Statutory Discount Toggle:** One-tap 20% discount calculation for PWDs, Seniors, and Students.
 - **Official LTFRB Rate Table Modal:** Embedded webview for inspecting the latest published fare matrices directly from the Land Transportation Franchising and Regulatory Board.
 
-### 🛡️ 5. PWD & Senior ID Vault
-- **Secure On-Device Storage:** Store front/back photos of your PWD, Senior Citizen, or Student ID locally on your device.
-- **Quick Conductor Inspection:** One-tap inspection mode with smooth pinch-to-zoom, double-tap zoom, and screen rotation.
+### 🛡️ 5. "My ID" Google Wallet Pass Carousel
+- **Horizontal Swiping Pass Carousel:** Inspired by Google Wallet, commuters swipe smoothly between multiple transit discount cards:
+  - PWD ID Pass (RA 7277 / 9442)
+  - Senior Citizen Pass (RA 9994)
+  - Student Commuter ID (RA 11314)
+  - National ID / PhilSys Pass
+- **Encrypted Local Storage:** ID card photos are stored privately in `FileSystem.documentDirectory` and persist across reboots via `AsyncStorage`.
+- **Fullscreen Inspection Mode:** Tap any card to open a high-contrast inspection sheet with double-tap zoom, pinch-to-zoom, and a 90° landscape rotation button for conductors.
 
 ---
 
@@ -129,11 +139,11 @@ parapo/
 │   │   ├── index.tsx        # Commute Home: Flashcard carousel, VoiceOrb, Fare Guide
 │   │   ├── WebMapTab.tsx    # Navigation: Full-bleed Google Maps WebView & Intent router
 │   │   ├── VoicePromptsTab.tsx # Flashcards & Voice Models: Custom text input & quick prompts
-│   │   └── IDCardTab.tsx    # ID Vault: Secure PWD/Senior discount pass viewer
+│   │   └── IDCardTab.tsx    # My ID: Google Wallet-style multi-pass horizontal carousel
 │   ├── _layout.tsx          # Root app provider and stack container
 │   ├── +not-found.tsx       # 404 fallback route
 │   └── logic/
-│       └── useIdCard.ts     # ID Vault storage and image management hook
+│       └── useIdCard.ts     # Multi-card Google Wallet storage and migration hook
 ├── assets/                  # App launcher icons, splash screens, and vector assets
 ├── components/
 │   ├── FlashcardScene.tsx   # Context-specific geometric flat-vector animated scenes
@@ -142,7 +152,7 @@ parapo/
 ├── constants/
 │   └── fareMatrix.ts        # Official LTFRB fare rates, distance steps, and discount logic
 ├── docs/
-│   └── screenshots/         # Verified production screenshots on physical device
+│   └── screenshots/         # Verified production screenshots on physical Nothing Phone (3a) Pro
 ├── services/
 │   └── naturalVoiceService.ts # Local neural TTS engine and Filipino prosody normalizer
 ├── app.json                 # Expo app manifest and Android package configuration
@@ -219,6 +229,7 @@ ParaPo! is engineered under strict **Accessibility & Automotive-Inspired Design 
 2. **Icon-First Ergonomics:** Obvious actions use clean, self-describing vector glyphs without redundant button outlines or duplicate rows.
 3. **Generous Typography:** Large, readable Filipino commuters headers and high-contrast labels designed to be instantly legible under glaring sunlight or bumpy transit rides.
 4. **Immediate Tactile Feedback:** Every card press and speech trigger is paired with heavy haptic impact (`Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)`), spring scale bounce (`0.94 -> 1.0`), and glowing text highlights.
+5. **Culturally Grounded Iconography:** The production app emblem features a sculpted gold commuter hand gesture (*"Para po!"*) inside a ruby transit stop octagon, representing safety, speed, and Filipino transit identity.
 
 ---
 
@@ -257,7 +268,7 @@ We welcome contributions to make commuter transit more accessible for everyone!
 
 | Version | Date | Highlights |
 | :--- | :--- | :--- |
-| **v1.0.0** | October 2026 | **Production Release:** Tesla-inspired unboxed UI, 5 original geometric vector flashcard animations, ChatGPT Voice Mode orb, 100% offline local neural Filipino TTS engine, Google Maps WebView with smart intent routing, in-app LTFRB fare calculator, and PWD ID Vault. |
+| **v1.0.0** | October 2026 | **Production Release:** Tesla-inspired unboxed UI, 5 original geometric vector flashcard animations, ChatGPT Voice Mode orb, 100% offline local neural Filipino TTS engine, Google Maps WebView with smart intent routing, in-app LTFRB fare calculator, and My ID Google Wallet pass carousel. |
 
 ---
 

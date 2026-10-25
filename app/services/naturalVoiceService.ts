@@ -2,7 +2,7 @@ import * as Haptics from "expo-haptics";
 import * as Speech from "expo-speech";
 import { Linking, Platform } from "react-native";
 
-export type VoiceModelId = "juan" | "amihan" | "tala" | "bagwis" | "sinag";
+export type VoiceModelId = "voice1" | "voice2" | "voice3";
 
 export interface VoiceModelProfile {
   id: VoiceModelId;
@@ -15,57 +15,41 @@ export interface VoiceModelProfile {
 
 export const VOICE_MODELS: VoiceModelProfile[] = [
   {
-    id: "juan",
-    name: "Juan",
-    tagline: "Composed and direct",
-    rate: 0.94,
-    pitch: 0.98,
-    voiceIndexPreference: 0,
-  },
-  {
-    id: "amihan",
-    name: "Amihan",
+    id: "voice1",
+    name: "Voice 1",
     tagline: "Easygoing and versatile",
     rate: 0.93,
     pitch: 1.03,
-    voiceIndexPreference: 1,
+    voiceIndexPreference: 0,
   },
   {
-    id: "tala",
-    name: "Tala",
+    id: "voice2",
+    name: "Voice 2",
     tagline: "Bright and expressive",
     rate: 0.98,
     pitch: 1.08,
-    voiceIndexPreference: 2,
+    voiceIndexPreference: 1,
   },
   {
-    id: "bagwis",
-    name: "Bagwis",
-    tagline: "Calm and affirming",
-    rate: 0.88,
-    pitch: 0.92,
-    voiceIndexPreference: 3,
-  },
-  {
-    id: "sinag",
-    name: "Sinag",
+    id: "voice3",
+    name: "Voice 3",
     tagline: "Confident and natural",
     rate: 0.96,
     pitch: 1.0,
-    voiceIndexPreference: 4,
+    voiceIndexPreference: 2,
   },
 ];
 
 class NaturalVoiceService {
   private availableVoices: Speech.Voice[] = [];
   private filipinoVoices: Speech.Voice[] = [];
-  private selectedModelId: VoiceModelId = "juan";
+  private selectedModelId: VoiceModelId = "voice1";
   private initialized: boolean = false;
 
   async initialize(): Promise<void> {
     try {
       this.availableVoices = await Speech.getAvailableVoicesAsync();
-      // Prioritize neural/network and enhanced local Filipino models on Android 15 (Google TTS Conformer/WaveNet)
+      // Prioritize neural/network and enhanced local Filipino models on Android 15
       const rawFil = this.availableVoices.filter((v) => {
         const lang = (v.language || "").toLowerCase();
         const id = (v.identifier || "").toLowerCase();
@@ -142,46 +126,73 @@ class NaturalVoiceService {
     }
 
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     } catch {}
 
-    const processedText = this.normalizeTagalogText(text);
     const model = this.getVoiceModel();
+    const normalized = this.normalizeTagalogText(text);
 
-    await Speech.stop();
+    let chosenVoice: Speech.Voice | undefined;
+    if (this.filipinoVoices.length > 0) {
+      const idx = model.voiceIndexPreference % this.filipinoVoices.length;
+      chosenVoice = this.filipinoVoices[idx];
+    }
 
     const speechOptions: Speech.SpeechOptions = {
-      language: "fil",
-      pitch: model.pitch,
       rate: model.rate,
+      pitch: model.pitch,
       volume: 1.0,
       onStart: options?.onStart,
       onDone: options?.onDone,
       onError: options?.onError,
     };
 
-    if (this.filipinoVoices.length > 0) {
-      const targetVoice =
-        this.filipinoVoices[model.voiceIndexPreference % this.filipinoVoices.length] ||
-        this.filipinoVoices[0];
-      speechOptions.voice = targetVoice.identifier;
+    if (chosenVoice) {
+      speechOptions.voice = chosenVoice.identifier;
+      speechOptions.language = chosenVoice.language || "fil";
+    } else {
+      speechOptions.language = Platform.OS === "android" ? "fil" : "fil-PH";
     }
 
-    Speech.speak(processedText, speechOptions);
+    try {
+      await Speech.stop();
+      Speech.speak(normalized, speechOptions);
+    } catch (err) {
+      console.warn("[NaturalVoiceService] Primary speak error, falling back:", err);
+      try {
+        Speech.speak(normalized, {
+          rate: 0.95,
+          pitch: 1.0,
+          language: "en-US",
+          onStart: options?.onStart,
+          onDone: options?.onDone,
+          onError: options?.onError,
+        });
+      } catch (fallbackErr) {
+        options?.onError?.(fallbackErr);
+      }
+    }
   }
 
-  async openTtsSettings(): Promise<void> {
+  async stop(): Promise<void> {
+    try {
+      await Speech.stop();
+    } catch {}
+  }
+
+  openTtsSettings(): void {
+    try {
+      Haptics.selectionAsync();
+    } catch {}
     if (Platform.OS === "android") {
-      try {
-        await Linking.sendIntent("com.android.settings.TTS_SETTINGS");
-      } catch {
+      Linking.sendIntent("com.android.settings.TTS_SETTINGS").catch(() => {
         Linking.openSettings();
-      }
+      });
     } else {
       Linking.openSettings();
     }
   }
 }
 
-export const naturalVoiceService = new NaturalVoiceService();
+const naturalVoiceService = new NaturalVoiceService();
 export default naturalVoiceService;

@@ -87,11 +87,11 @@ export default function TabLayout() {
         <Tabs.Screen
           name="IDCardTab"
           options={{
-            title: "ID Vault",
-            tabBarLabel: "ID Vault",
+            title: "My ID",
+            tabBarLabel: "My ID",
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
-                name={focused ? "shield-checkmark" : "shield-checkmark-outline"}
+                name={focused ? "wallet" : "wallet-outline"}
                 size={22}
                 color={focused ? "#FFFFFF" : color}
               />
