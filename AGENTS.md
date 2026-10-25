@@ -198,3 +198,10 @@ When navigating, inspecting, or capturing screens on the target test device (Not
   .\scripts\bin\device.exe dump-ui
   ```
 - **Authoritative Calibration Reference:** Full hardware profiles, insets (`118px` top, `74px` bottom), crop bounding boxes `(0, 118, 1080, 2318)`, and normalized canvas formulas are documented in [`D:\Dev\projects\alalay\DEVICE_CALIBRATION.md`](file:///D:/Dev/projects/alalay/DEVICE_CALIBRATION.md) and declared in [`D:\Dev\projects\alalay\device_profiles.json`](file:///D:/Dev/projects/alalay/device_profiles.json).
+
+
+## Mobile Device Testing & Interaction (palp)
+When instructed to inspect, navigate, touch, or test mobile screens on connected devices:
+- Always use `palp` CLI commands (`palp snap`, `palp tap-text`, `palp tap`, `palp swipe`).
+- Do not guess raw adb screen coordinates or take uncropped screenshots.
+- Refer to `AGENT_DEVICE.md` and `.palprc.json` for project shortcuts.

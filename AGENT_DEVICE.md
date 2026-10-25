@@ -33,3 +33,11 @@ This project uses `palp` to let AI coding assistants (**Google Antigravity**, **
    palp tap 0.5,0.5      # Center of screen
    palp tap 0.5,0.2      # Top header
    ```
+
+6. **Swipe Gestures (Carousels & Scrolling):**
+   ```bash
+   palp swipe left       # Next slide / scroll right
+   palp swipe right      # Previous slide / scroll left
+   palp swipe up         # Scroll down
+   palp swipe down       # Scroll up
+   ```

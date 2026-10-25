@@ -5,10 +5,25 @@
     "navigation_bar": 63
   },
   "targets": {
-    "tab:commute": [270, 2250],
-    "tab:sukli": [810, 2250],
-    "preset:4km": [270, 1100],
-    "preset:8km": [540, 1100],
-    "preset:15km": [810, 1100]
+    "preset:4km": [
+      270,
+      1100
+    ],
+    "tab:commute": [
+      270,
+      2250
+    ],
+    "tab:sukli": [
+      810,
+      2250
+    ],
+    "preset:8km": [
+      540,
+      1100
+    ],
+    "preset:15km": [
+      810,
+      1100
+    ]
   }
 }
