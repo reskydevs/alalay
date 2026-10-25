@@ -219,10 +219,10 @@ export function useIDCard() {
 
   // 4. Rename Card
   const handleRenameCard = async (cardId: string, newName: string) => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
+    const sanitized = newName.replace(/[\r\n\t]/g, " ").trim().slice(0, 40);
+    if (!sanitized) return;
     const updated = cards.map((c) =>
-      c.id === cardId ? { ...c, name: trimmed } : c
+      c.id === cardId ? { ...c, name: sanitized } : c
     );
     await saveCards(updated);
     try {
@@ -235,9 +235,10 @@ export function useIDCard() {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch {}
+    const sanitized = initialName?.replace(/[\r\n\t]/g, " ").trim().slice(0, 40);
     const newCard: UserIDCard = {
       id: `id_card_${Date.now()}`,
-      name: initialName?.trim() || `ID ${cards.length + 1}`,
+      name: sanitized || `ID ${cards.length + 1}`,
       imageUri: null,
       createdAt: Date.now(),
     };
@@ -246,8 +247,9 @@ export function useIDCard() {
     setActiveCardIndex(updated.length - 1);
   };
 
-  // 6. Delete Card
+  // 6. Delete Card with storage cleanup
   const handleDeleteCard = async (cardId: string) => {
+    const target = cards.find((c) => c.id === cardId);
     if (cards.length <= 1) {
       // Clear photo instead of deleting last card
       await handleRemovePhoto(cardId);
@@ -256,20 +258,15 @@ export function useIDCard() {
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     } catch {}
+
+    // Cleanup local storage file if exists (Ian Sommerville Part 2: Dependable Programming)
+    if (target?.imageUri && target.imageUri.startsWith(FileSystem.documentDirectory || "")) {
+      FileSystem.deleteAsync(target.imageUri, { idempotent: true }).catch(() => {});
+    }
+
     const updated = cards.filter((c) => c.id !== cardId);
     await saveCards(updated);
     setActiveCardIndex(Math.max(0, activeCardIndex - 1));
-  };
-
-  // 7. Privacy Info Dialog (No borrowed names, 100% on-device)
-  const showPrivacyInfo = () => {
-    try {
-      Haptics.selectionAsync();
-    } catch {}
-    Alert.alert(
-      "Private On-Device Storage",
-      "Your ID photos are stored locally on your device. They are never uploaded online or to the cloud."
-    );
   };
 
   return {
@@ -291,7 +288,6 @@ export function useIDCard() {
     handleRenameCard,
     handleAddCard,
     handleDeleteCard,
-    showPrivacyInfo,
     window,
     minScale,
     maxScale,

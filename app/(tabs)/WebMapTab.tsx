@@ -1,353 +1,458 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import * as Location from "expo-location";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
-  BackHandler,
+  Alert,
+  FlatList,
   Linking,
+  Platform,
+  ScrollView,
   StatusBar,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { WebView, WebViewMessageEvent, WebViewNavigation } from "react-native-webview";
+import { Station, TRANSIT_LINES, TransitLine } from "../data/transitLines";
 
-const DEFAULT_MAP_URL =
-  "https://www.google.com/maps/@14.5995,120.9842,15z?hl=en";
-
-export default function WebMapTab() {
+export default function TransitHubTab() {
   const insets = useSafeAreaInsets();
-  const webViewRef = useRef<WebView>(null);
-  const [mapUrl, setMapUrl] = useState(DEFAULT_MAP_URL);
-  const [canGoBack, setCanGoBack] = useState(false);
-  const [isSignInPage, setIsSignInPage] = useState(false);
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [selectedLineId, setSelectedLineId] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [expandedStationId, setExpandedStationId] = useState<string | null>(null);
 
-  const currentWebUrlRef = useRef(DEFAULT_MAP_URL);
-  const lastMapsUrlRef = useRef(DEFAULT_MAP_URL);
+  // Sanitize search input
+  const sanitizedQuery = useMemo(() => {
+    return searchQuery
+      .replace(/[^\w\s-]/gi, "")
+      .trim()
+      .toLowerCase()
+      .slice(0, 50);
+  }, [searchQuery]);
 
-  const navigateWebViewTo = useCallback((targetUrl: string) => {
-    currentWebUrlRef.current = targetUrl;
-    if (
-      targetUrl.includes("google.com/maps") ||
-      targetUrl.includes("maps.google.com")
-    ) {
-      lastMapsUrlRef.current = targetUrl;
-      setIsSignInPage(false);
+  // Filter stations across lines
+  const filteredData = useMemo(() => {
+    let lines = TRANSIT_LINES;
+    if (selectedLineId !== "all") {
+      lines = lines.filter((l) => l.id === selectedLineId);
     }
-    setMapUrl(targetUrl);
-    setTimeout(() => {
-      webViewRef.current?.injectJavaScript(
-        `window.location.assign(${JSON.stringify(targetUrl)}); true;`
-      );
-    }, 15);
-  }, []);
 
-  const returnToMapsFromSignIn = useCallback(() => {
-    try {
-      Haptics.selectionAsync();
-    } catch {}
-    const fallbackMap = lastMapsUrlRef.current || DEFAULT_MAP_URL;
-    setIsSignInPage(false);
-    setMapUrl(fallbackMap);
-    webViewRef.current?.injectJavaScript(
-      `window.location.replace(${JSON.stringify(fallbackMap)}); true;`
-    );
-  }, []);
-
-  const handleGoBack = useCallback(() => {
-    try {
-      Haptics.selectionAsync();
-    } catch {}
-    if (
-      isSignInPage ||
-      currentWebUrlRef.current.includes("accounts.google.com") ||
-      currentWebUrlRef.current.includes("ServiceLogin")
-    ) {
-      returnToMapsFromSignIn();
-      return true;
-    }
-    if (canGoBack && webViewRef.current) {
-      webViewRef.current.goBack();
-      return true;
-    }
-    return false;
-  }, [canGoBack, isSignInPage, returnToMapsFromSignIn]);
-
-  // Hook Android hardware back gesture
-  useEffect(() => {
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (
-        isSignInPage ||
-        currentWebUrlRef.current.includes("accounts.google.com") ||
-        canGoBack
-      ) {
-        return handleGoBack();
-      }
-      return false;
-    });
-    return () => sub.remove();
-  }, [canGoBack, isSignInPage, handleGoBack]);
-
-  // Request high-accuracy GPS on startup
-  useEffect(() => {
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === "granted") {
-          const loc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.High,
-          });
-          const { latitude, longitude } = loc.coords;
-          setUserCoords({ lat: latitude, lng: longitude });
-          const initialUrl = `https://www.google.com/maps/@${latitude},${longitude},16z?hl=en`;
-          lastMapsUrlRef.current = initialUrl;
-          currentWebUrlRef.current = initialUrl;
-          setMapUrl(initialUrl);
+    const results: { line: TransitLine; station: Station }[] = [];
+    for (const line of lines) {
+      for (const station of line.stations) {
+        if (!sanitizedQuery) {
+          results.push({ line, station });
+        } else {
+          const matchName = station.name.toLowerCase().includes(sanitizedQuery);
+          const matchCity = station.city.toLowerCase().includes(sanitizedQuery);
+          const matchInterchange = station.interchangeWith?.some((i) =>
+            i.toLowerCase().includes(sanitizedQuery)
+          );
+          const matchNotes = station.notes?.toLowerCase().includes(sanitizedQuery);
+          if (matchName || matchCity || matchInterchange || matchNotes) {
+            results.push({ line, station });
+          }
         }
-      } catch {}
-    })();
-  }, []);
+      }
+    }
+    return results;
+  }, [selectedLineId, sanitizedQuery]);
 
-  // Open native Google Maps app for turn-by-turn GPS navigation
-  const openNativeMapsApp = useCallback(() => {
+  const activeLine = useMemo(() => {
+    return TRANSIT_LINES.find((l) => l.id === selectedLineId);
+  }, [selectedLineId]);
+
+  // Turn-by-Turn GPS intent
+  const handleNavigateStation = async (station: Station, line: TransitLine) => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch {}
-    const currentUrl = currentWebUrlRef.current;
-    if (currentUrl.includes("/maps/dir/")) {
-      Linking.openURL(currentUrl).catch(() => {
-        const fallback = userCoords
-          ? `google.navigation:q=${userCoords.lat},${userCoords.lng}`
-          : "geo:0,0?q=transit";
-        Linking.openURL(fallback).catch(() => {});
-      });
-    } else if (userCoords) {
-      Linking.openURL(`geo:${userCoords.lat},${userCoords.lng}?q=transit`).catch(() => {});
-    } else {
-      Linking.openURL("https://www.google.com/maps").catch(() => {});
-    }
-  }, [userCoords]);
 
-  // Injected JS before content loads
-  const INJECTED_BEFORE_LOAD_JS = `
-    (function() {
-      try {
-        var now = Date.now().toString();
-        localStorage.setItem('decommissionedagmm', now);
-        localStorage.setItem('igmmstate', JSON.stringify({ state: '0', timestamp: Date.now() }));
-        localStorage.setItem('reengagementlinkpromodismissed', '1');
-      } catch (e) {}
-      window.open = function(url) {
-        if (url) {
-          window.location.href = url;
-        }
-        return window;
-      };
-    })();
-    true;
-  `;
+    const lat = station.lat;
+    const lng = station.lng;
+    const label = encodeURIComponent(`${station.name} (${line.shortName})`);
 
-  // Injected JS: cleans banners and hooks the "Start" button to launch native turn-by-turn navigation
-  const INJECTED_JS = `
-    (function() {
-      if (window.__parapoNavHooked) return;
-      window.__parapoNavHooked = true;
+    const androidNavUrl = `google.navigation:q=${lat},${lng}&mode=d`;
+    const geoUrl = `geo:${lat},${lng}?q=${lat},${lng}(${label})`;
+    const webFallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
-      // Clean annoying promo popups without triggering blank search overlays
-      function cleanGoogleMapsDom() {
-        var promo = document.querySelector('.ml-persistent-promo-banner, #CfMG9b, .ml-app-promo-banner');
-        if (promo) {
-          promo.style.display = 'none';
-        }
-      }
-      cleanGoogleMapsDom();
-      setInterval(cleanGoogleMapsDom, 800);
-
-      // Listen for "Start" navigation clicks to launch the native Google Maps app
-      document.addEventListener('click', function(e) {
-        var el = e.target;
-        for (var depth = 0; el && depth < 6; depth++, el = el.parentElement) {
-          var txt = (el.innerText || el.textContent || '').trim().toLowerCase();
-          var aria = (el.getAttribute && (el.getAttribute('aria-label') || '')).toLowerCase();
-          if (
-            txt === 'start' ||
-            aria === 'start' ||
-            txt === 'simulan' ||
-            txt.indexOf('start navigation') !== -1
-          ) {
-            if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'START_NAVIGATION',
-                currentUrl: window.location.href
-              }));
-            }
-            break;
-          }
-        }
-      }, true);
-    })();
-    true;
-  `;
-
-  const handleShouldStartLoad = (url: string): boolean => {
-    // Detect Google Sign-In
-    if (
-      url.includes("accounts.google.com") ||
-      url.includes("ServiceLogin")
-    ) {
-      currentWebUrlRef.current = url;
-      setIsSignInPage(true);
-      return true;
-    }
-
-    // Launch native navigation when google.navigation: or dir_action=navigate is requested
-    if (
-      url.startsWith("google.navigation:") ||
-      url.includes("dir_action=navigate") ||
-      (url.startsWith("intent://") && (url.includes("google.navigation") || url.includes("dir_action=navigate")))
-    ) {
-      let launchTarget = url;
-      if (url.startsWith("intent://")) {
-        const clean = url.split("#Intent")[0].replace(/^intent:\/\//, "https://");
-        launchTarget = clean;
-      }
-      Linking.openURL(launchTarget).catch(() => {});
-      return false;
-    }
-
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      currentWebUrlRef.current = url;
-      if (
-        url.includes("google.com/maps") ||
-        url.includes("maps.google.com")
-      ) {
-        lastMapsUrlRef.current = url;
-        setIsSignInPage(false);
-      }
-      return true;
-    }
-
-    return false;
-  };
-
-  const handleWebViewMessage = (event: WebViewMessageEvent) => {
     try {
-      const payload = JSON.parse(event.nativeEvent.data);
-      if (payload?.type === "START_NAVIGATION") {
-        const targetUrl = payload.currentUrl || currentWebUrlRef.current;
-        Linking.openURL(targetUrl).catch(() => {});
+      if (Platform.OS === "android") {
+        const canNav = await Linking.canOpenURL(androidNavUrl);
+        if (canNav) {
+          await Linking.openURL(androidNavUrl);
+          return;
+        }
       }
-    } catch {}
+
+      const canGeo = await Linking.canOpenURL(geoUrl);
+      if (canGeo) {
+        await Linking.openURL(geoUrl);
+        return;
+      }
+
+      await Linking.openURL(webFallbackUrl);
+    } catch {
+      Alert.alert(
+        "Navigation",
+        `Could not open map app. Coordinates: ${lat}, ${lng}`,
+        [{ text: "OK" }]
+      );
+    }
   };
 
-  const handleNavStateChange = (navState: WebViewNavigation) => {
-    setCanGoBack(navState.canGoBack);
-    const url = navState.url || "";
-    if (!url) return;
-    currentWebUrlRef.current = url;
-
-    if (url.includes("accounts.google.com") || url.includes("ServiceLogin")) {
-      setIsSignInPage(true);
-    } else if (
-      url.includes("google.com/maps") ||
-      url.includes("maps.google.com")
-    ) {
-      lastMapsUrlRef.current = url;
-      setIsSignInPage(false);
+  const handleCallHotline = (phoneString: string) => {
+    try {
+      Haptics.selectionAsync();
+    } catch {}
+    const digits = phoneString.replace(/[^\d+]/g, "");
+    if (digits) {
+      Linking.openURL(`tel:${digits}`).catch(() => {
+        Alert.alert("Operator Hotline", phoneString);
+      });
     }
+  };
+
+  const handleSelectLine = (id: string) => {
+    try {
+      Haptics.selectionAsync();
+    } catch {}
+    setSelectedLineId(id);
+  };
+
+  const toggleStationExpand = (id: string) => {
+    try {
+      Haptics.selectionAsync();
+    } catch {}
+    setExpandedStationId((prev) => (prev === id ? null : id));
   };
 
   return (
     <View
+      className="flex-1 bg-black"
       style={{
-        flex: 1,
-        backgroundColor: "#000000",
         paddingTop: Math.max(insets.top, 24),
       }}
     >
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      {/* Top Header Bar (Back button when needed) */}
-      {(canGoBack || isSignInPage) && (
-        <View className="px-5 pb-2 flex-row items-center justify-between">
-          <TouchableOpacity
-            onPress={handleGoBack}
-            hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
-            className="flex-row items-center"
-          >
-            <Ionicons name="arrow-back" size={26} color="#FFFFFF" />
-            <Text className="text-white font-semibold text-lg ml-2">
-              Back
-            </Text>
-          </TouchableOpacity>
+      {/* Clean Unboxed Mobile-First Header */}
+      <View className="px-5 pt-2 pb-3">
+        <Text className="text-white text-3xl font-black tracking-tight">
+          Transit
+        </Text>
+        <Text className="text-zinc-500 text-xs font-semibold tracking-wider mt-0.5">
+          Metro Rail Lines & Stations
+        </Text>
+      </View>
 
-          {isSignInPage && (
+      {/* Seamless Search Bar */}
+      <View className="px-5 mb-3">
+        <View className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 flex-row items-center">
+          <Ionicons name="search" size={18} color="#71717A" />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search station, landmark, or city..."
+            placeholderTextColor="#71717A"
+            className="flex-1 text-white text-base ml-3 py-0"
+            autoCorrect={false}
+            maxLength={50}
+          />
+          {searchQuery.length > 0 && (
             <TouchableOpacity
-              onPress={returnToMapsFromSignIn}
+              onPress={() => setSearchQuery("")}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text className="text-[#38BDF8] font-bold text-base">
-                Skip Sign-In
-              </Text>
+              <Ionicons name="close-circle" size={18} color="#A1A1AA" />
             </TouchableOpacity>
           )}
         </View>
-      )}
+      </View>
 
-      {/* Map Canvas */}
-      <View className="flex-1 bg-[#000000]">
-        <WebView
-          ref={webViewRef}
-          source={{ uri: mapUrl }}
-          startInLoadingState={false}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          geolocationEnabled={true}
-          sharedCookiesEnabled={true}
-          thirdPartyCookiesEnabled={true}
-          mixedContentMode="always"
-          originWhitelist={["*"]}
-          setSupportMultipleWindows={false}
-          injectedJavaScriptBeforeContentLoaded={INJECTED_BEFORE_LOAD_JS}
-          injectedJavaScript={INJECTED_JS}
-          onShouldStartLoadWithRequest={(req) => handleShouldStartLoad(req.url)}
-          onNavigationStateChange={handleNavStateChange}
-          onMessage={handleWebViewMessage}
-          userAgent="Mozilla/5.0 (Linux; Android 15; A059P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36"
-          className="flex-1"
-        />
-
-        {/* Floating Turn-by-Turn GPS Launcher Pill */}
-        <View
-          style={{
-            position: "absolute",
-            bottom: 16,
-            right: 16,
-            zIndex: 10,
-          }}
+      {/* Rail Line Filter Scroll Pills */}
+      <View className="pb-3 border-b border-zinc-900">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
         >
           <TouchableOpacity
-            onPress={openNativeMapsApp}
-            activeOpacity={0.85}
-            style={{
-              backgroundColor: "#1D4ED8",
-              shadowColor: "#000000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.5,
-              shadowRadius: 8,
-              elevation: 8,
-            }}
-            className="flex-row items-center px-4 py-3 rounded-full gap-2 border border-blue-400"
+            onPress={() => handleSelectLine("all")}
+            className={`px-4 py-2 rounded-full border ${
+              selectedLineId === "all"
+                ? "bg-white border-white"
+                : "bg-zinc-900 border-zinc-800"
+            }`}
           >
-            <Ionicons name="navigate" size={18} color="#FFFFFF" />
-            <Text className="text-white font-bold text-xs tracking-wider uppercase">
-              Start Turn-by-Turn
+            <Text
+              className={`text-xs font-bold ${
+                selectedLineId === "all" ? "text-black" : "text-zinc-400"
+              }`}
+            >
+              All Lines
             </Text>
           </TouchableOpacity>
-        </View>
+
+          {TRANSIT_LINES.map((line) => {
+            const isSelected = selectedLineId === line.id;
+            const isFuture = line.status === "Under Construction";
+            return (
+              <TouchableOpacity
+                key={line.id}
+                onPress={() => handleSelectLine(line.id)}
+                className="px-3.5 py-2 rounded-full border flex-row items-center gap-1.5"
+                style={{
+                  backgroundColor: isSelected ? line.accentBg : "#18181b",
+                  borderColor: isSelected ? line.badgeBorder : "#27272a",
+                }}
+              >
+                <View
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: line.color }}
+                />
+                <Text
+                  className="text-xs font-bold"
+                  style={{
+                    color: isSelected ? "#FFFFFF" : isFuture ? "#A1A1AA" : "#D4D4D8",
+                  }}
+                >
+                  {line.shortName}
+                  {isFuture ? " (Future)" : ""}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
+
+      {/* Active Line Overview Banner (if single line selected) */}
+      {activeLine && (
+        <View className="px-5 pt-3">
+          <View
+            className="p-4 rounded-2xl border"
+            style={{
+              backgroundColor: activeLine.accentBg,
+              borderColor: activeLine.badgeBorder,
+            }}
+          >
+            <View className="flex-row items-center justify-between mb-1">
+              <Text className="text-white font-black text-lg">
+                {activeLine.name}
+              </Text>
+              <View
+                className="px-2.5 py-0.5 rounded-full"
+                style={{
+                  backgroundColor:
+                    activeLine.status === "Active" ? "#22c55e" : "#ef4444",
+                }}
+              >
+                <Text className="text-[10px] font-black text-black uppercase">
+                  {activeLine.status === "Active" ? "Operating" : "Under Construction"}
+                </Text>
+              </View>
+            </View>
+
+            {/* Construction Fact-Check Callout */}
+            {activeLine.constructionNotice ? (
+              <Text className="text-amber-300 text-xs font-medium mt-1 leading-relaxed">
+                ℹ️ {activeLine.constructionNotice}
+              </Text>
+            ) : (
+              <Text className="text-zinc-300 text-xs mb-2">
+                {activeLine.terminalFrom} ⇄ {activeLine.terminalTo}
+              </Text>
+            )}
+
+            {/* Operating Line Metrics */}
+            {activeLine.status === "Active" && (
+              <View className="flex-row items-center justify-between border-t border-white/10 pt-2.5 mt-2">
+                <View>
+                  <Text className="text-zinc-400 text-[10px] font-semibold uppercase">
+                    First / Last Train
+                  </Text>
+                  <Text className="text-white text-xs font-bold mt-0.5">
+                    {activeLine.firstTrain} - {activeLine.lastTrain.split(" ")[0]}
+                  </Text>
+                </View>
+
+                <View>
+                  <Text className="text-zinc-400 text-[10px] font-semibold uppercase">
+                    Headway
+                  </Text>
+                  <Text className="text-white text-xs font-bold mt-0.5">
+                    {activeLine.headwayMinutes}
+                  </Text>
+                </View>
+
+                <View>
+                  <Text className="text-zinc-400 text-[10px] font-semibold uppercase">
+                    Fare (Beep)
+                  </Text>
+                  <Text className="text-white text-xs font-bold mt-0.5">
+                    {activeLine.fareBeep}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Stations List Header */}
+      <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
+        <Text className="text-zinc-500 text-xs font-bold uppercase tracking-wider">
+          Stations ({filteredData.length})
+        </Text>
+        <Text className="text-zinc-600 text-xs">
+          Tap station to expand
+        </Text>
+      </View>
+
+      {/* Generous Full-Bleed Station List */}
+      <FlatList
+        data={filteredData}
+        keyExtractor={(item) => `${item.line.id}-${item.station.id}`}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+        initialNumToRender={10}
+        maxToRenderPerBatch={15}
+        windowSize={7}
+        renderItem={({ item }) => {
+          const { line, station } = item;
+          const isExpanded = expandedStationId === station.id;
+          const isFuture = line.status === "Under Construction";
+
+          return (
+            <View className="bg-zinc-950 border border-zinc-900 rounded-2xl mb-2.5 overflow-hidden">
+              <TouchableOpacity
+                onPress={() => toggleStationExpand(station.id)}
+                activeOpacity={0.8}
+                className="p-4 flex-row items-center justify-between"
+              >
+                <View className="flex-1 mr-3">
+                  <View className="flex-row items-center gap-2 mb-1.5">
+                    <View
+                      className="px-2 py-0.5 rounded-md"
+                      style={{ backgroundColor: line.badgeBorder }}
+                    >
+                      <Text className="text-[10px] font-black text-black">
+                        {line.shortName}
+                      </Text>
+                    </View>
+
+                    <Text className="text-zinc-500 text-xs font-medium">
+                      {station.city}
+                    </Text>
+
+                    {station.isExtension && (
+                      <View className="bg-cyan-950 border border-cyan-500/40 px-1.5 py-0.2 rounded">
+                        <Text className="text-cyan-300 text-[9px] font-bold">
+                          OPEN 2024
+                        </Text>
+                      </View>
+                    )}
+
+                    {isFuture && (
+                      <View className="bg-amber-950 border border-amber-500/40 px-1.5 py-0.2 rounded">
+                        <Text className="text-amber-300 text-[9px] font-bold">
+                          FUTURE
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Text className="text-white text-lg font-bold tracking-tight">
+                    {station.name}
+                  </Text>
+
+                  {/* Interchanges preview */}
+                  {station.interchangeWith && station.interchangeWith.length > 0 && (
+                    <View className="flex-row flex-wrap gap-1.5 mt-2">
+                      {station.interchangeWith.map((ic, idx) => (
+                        <View
+                          key={idx}
+                          className="bg-zinc-900 px-2.5 py-1 rounded-full flex-row items-center gap-1"
+                        >
+                          <Ionicons name="git-merge" size={11} color="#38BDF8" />
+                          <Text className="text-sky-300 text-[11px] font-semibold">
+                            {ic}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+
+                <Ionicons
+                  name={isExpanded ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#71717A"
+                />
+              </TouchableOpacity>
+
+              {/* Expanded Detail Panel */}
+              {isExpanded && (
+                <View className="px-4 pb-4 pt-2 border-t border-zinc-900 bg-zinc-900/30">
+                  {station.notes && (
+                    <Text className="text-zinc-300 text-xs mb-3 leading-relaxed">
+                      📍 {station.notes}
+                    </Text>
+                  )}
+
+                  {/* Grounded Fact-Checked Accessibility Info */}
+                  <View className="bg-zinc-900/80 p-3 rounded-xl border border-zinc-800 mb-3">
+                    <View className="flex-row items-center gap-1.5 mb-1">
+                      <Ionicons
+                        name={station.hasElevator ? "body" : "information-circle"}
+                        size={14}
+                        color={station.hasElevator ? "#34D399" : "#A1A1AA"}
+                      />
+                      <Text
+                        className={`text-xs font-bold ${
+                          station.hasElevator ? "text-emerald-400" : "text-zinc-400"
+                        }`}
+                      >
+                        {station.hasElevator
+                          ? "Elevator Equipped per Directory"
+                          : "Standard Access Station"}
+                      </Text>
+                    </View>
+                    <Text className="text-zinc-400 text-[11px] leading-relaxed">
+                      {line.accessibilityNotice}
+                    </Text>
+
+                    {/* Operator Hotline Touchpoint */}
+                    <TouchableOpacity
+                      onPress={() => handleCallHotline(line.hotline)}
+                      activeOpacity={0.7}
+                      className="flex-row items-center gap-1.5 mt-2 pt-2 border-t border-zinc-800/80"
+                    >
+                      <Ionicons name="call-outline" size={12} color="#38BDF8" />
+                      <Text className="text-sky-400 text-xs font-semibold">
+                        {line.operator.split(" ")[0]} Hotline: {line.hotline}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 1-Tap Google Maps Turn-by-Turn GPS Button */}
+                  <TouchableOpacity
+                    onPress={() => handleNavigateStation(station, line)}
+                    activeOpacity={0.85}
+                    className="bg-sky-500 py-3 px-4 rounded-xl flex-row items-center justify-center gap-2"
+                  >
+                    <Ionicons name="navigate" size={16} color="#FFFFFF" />
+                    <Text className="text-white text-xs font-black tracking-wider uppercase">
+                      Navigate with Google Maps (Turn-by-Turn)
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          );
+        }}
+      />
     </View>
   );
 }

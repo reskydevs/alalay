@@ -21,6 +21,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIDCard } from "../logic/useIdCard";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CARD_GAP = 14;
+const CARD_WIDTH = Math.min(SCREEN_WIDTH - 52, 380);
+const CARD_HEIGHT = Math.round(CARD_WIDTH / 1.586); // Standard ID-1 / CR80 card aspect ratio
+const SNAP_INTERVAL = CARD_WIDTH + CARD_GAP;
+const SIDE_SPACING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
+
 const ImageZoomViewer = ImageZoom as unknown as React.ComponentType<any>;
 
 export default function IDCardTab() {
@@ -41,7 +47,6 @@ export default function IDCardTab() {
     handleRenameCard,
     handleAddCard,
     handleDeleteCard,
-    showPrivacyInfo,
   } = useIDCard();
 
   const window = useWindowDimensions();
@@ -51,9 +56,12 @@ export default function IDCardTab() {
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [renameText, setRenameText] = useState("");
 
+  // Modern Tesla/Apple Style Privacy Sheet State
+  const [showPrivacySheet, setShowPrivacySheet] = useState(false);
+
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = e.nativeEvent.contentOffset.x;
-    const idx = Math.round(offsetX / SCREEN_WIDTH);
+    const idx = Math.round(offsetX / SNAP_INTERVAL);
     if (idx >= 0 && idx < cards.length && idx !== activeCardIndex) {
       setActiveCardIndex(idx);
       try {
@@ -85,11 +93,17 @@ export default function IDCardTab() {
     setModalVisible(true);
   };
 
+  const openPrivacySheet = () => {
+    try {
+      Haptics.selectionAsync();
+    } catch {}
+    setShowPrivacySheet(true);
+  };
+
   return (
     <View
+      className="flex-1 bg-black"
       style={{
-        flex: 1,
-        backgroundColor: "#000000",
         paddingTop: Math.max(insets.top, 24),
       }}
     >
@@ -97,201 +111,311 @@ export default function IDCardTab() {
 
       {/* Top Header */}
       <View className="px-6 py-3 flex-row items-center justify-between">
-        <Text className="text-white font-bold text-3xl tracking-tight">
-          My ID
-        </Text>
+        <View>
+          <Text className="text-white font-black text-3xl tracking-tight">
+            My ID
+          </Text>
+          <Text className="text-zinc-500 text-xs font-semibold tracking-wider mt-0.5">
+            On-Device Commuter Passes
+          </Text>
+        </View>
 
-        <View className="flex-row items-center gap-5">
-          {/* Add ID Card */}
+        <View className="flex-row items-center gap-4">
+          {/* Add New ID Card */}
           <TouchableOpacity
             onPress={() => handleAddCard()}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="add" size={30} color="#FFFFFF" />
+            <Ionicons name="add" size={28} color="#FFFFFF" />
           </TouchableOpacity>
 
-          {/* Privacy Security Info */}
+          {/* Modern Privacy Sheet Trigger */}
           <TouchableOpacity
-            onPress={showPrivacyInfo}
+            onPress={openPrivacySheet}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="shield-checkmark-outline" size={24} color="#8E8E93" />
+            <Ionicons name="shield-checkmark-outline" size={22} color="#34D399" />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40, flexGrow: 1, justifyContent: "center" }}
+        contentContainerStyle={{
+          paddingBottom: 40,
+          flexGrow: 1,
+          justifyContent: "center",
+        }}
       >
-        {/* Horizontal Swiping Cards Carousel */}
-        <View className="my-auto">
+        {/* Real Peeking Card Deck Carousel */}
+        <View className="my-auto py-2">
           <ScrollView
             ref={scrollRef}
             horizontal
-            pagingEnabled
             showsHorizontalScrollIndicator={false}
+            snapToInterval={SNAP_INTERVAL}
+            decelerationRate="fast"
+            snapToAlignment="center"
+            contentContainerStyle={{
+              paddingHorizontal: SIDE_SPACING,
+            }}
             onScroll={handleScroll}
             scrollEventThrottle={16}
-            decelerationRate="fast"
           >
-            {cards.map((card) => {
+            {cards.map((card, index) => {
               const hasPhoto = Boolean(card.imageUri);
+              const isSelected = activeCardIndex === index;
+
               return (
                 <View
                   key={card.id}
-                  style={{ width: SCREEN_WIDTH }}
-                  className="px-6 justify-center items-center"
+                  style={{
+                    width: CARD_WIDTH,
+                    marginRight: index < cards.length - 1 ? CARD_GAP : 0,
+                  }}
                 >
                   <Pressable
                     onPress={() => handleCardPress(hasPhoto)}
                     style={{
-                      width: SCREEN_WIDTH - 48,
-                      height: 250,
-                      borderRadius: 24,
-                      backgroundColor: "#141416",
-                      borderColor: "#27272A",
-                      borderWidth: 1.5,
+                      width: CARD_WIDTH,
+                      height: CARD_HEIGHT,
+                      borderRadius: 22,
+                      backgroundColor: "#18181B",
                       overflow: "hidden",
+                      borderWidth: isSelected ? 1.5 : 1,
+                      borderColor: isSelected ? "#38BDF8" : "#27272A",
                     }}
-                    className="justify-between p-5"
+                    className="justify-between"
                   >
-                    {/* Card Header: User Defined Name & Actions */}
-                    <View className="flex-row items-center justify-between z-10">
-                      <TouchableOpacity
-                        onPress={() => openRenameModal(card.id, card.name)}
-                        className="flex-row items-center gap-2 max-w-[80%]"
-                        activeOpacity={0.7}
-                      >
-                        <Text
-                          numberOfLines={1}
-                          className="text-white font-bold text-2xl tracking-tight"
-                        >
-                          {card.name}
-                        </Text>
-                        <Ionicons name="pencil" size={16} color="#8E8E93" />
-                      </TouchableOpacity>
-
-                      {cards.length > 1 && (
-                        <TouchableOpacity
-                          onPress={() => handleDeleteCard(card.id)}
-                          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                        >
-                          <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-
-                    {/* Card Body: Photo or Minimal Attach Trigger */}
+                    {/* Full Card Face: Photo or Empty Trigger */}
                     {hasPhoto ? (
-                      <View className="flex-1 justify-center items-center my-2">
+                      <View className="w-full h-full relative">
                         <Image
                           source={{ uri: card.imageUri! }}
                           style={{
                             width: "100%",
                             height: "100%",
-                            borderRadius: 14,
                           }}
                           resizeMode="cover"
                         />
+
+                        {/* Top-Left Floating Name Pill with Pencil */}
+                        <View className="absolute top-3 left-3 flex-row items-center gap-1.5 bg-black/70 px-3 py-1.5 rounded-full border border-white/10 z-10">
+                          <TouchableOpacity
+                            onPress={() => openRenameModal(card.id, card.name)}
+                            className="flex-row items-center gap-1.5"
+                            activeOpacity={0.7}
+                          >
+                            <Text
+                              numberOfLines={1}
+                              className="text-white font-bold text-sm tracking-tight max-w-[180px]"
+                            >
+                              {card.name}
+                            </Text>
+                            <Ionicons name="pencil" size={13} color="#94A3B8" />
+                          </TouchableOpacity>
+                        </View>
+
+                        {/* Bottom Fullscreen Hint Icon */}
+                        <View className="absolute bottom-3 right-3 bg-black/60 p-1.5 rounded-full border border-white/10">
+                          <Ionicons name="expand" size={14} color="#E2E8F0" />
+                        </View>
                       </View>
                     ) : (
-                      <View className="flex-1 items-center justify-center my-3">
-                        <View className="flex-row gap-4 mt-2">
-                          {/* Take Camera Photo */}
+                      <View className="w-full h-full justify-between p-5 bg-gradient-to-br from-zinc-900 to-zinc-950">
+                        {/* Name at top */}
+                        <View className="flex-row items-center justify-between">
+                          <TouchableOpacity
+                            onPress={() => openRenameModal(card.id, card.name)}
+                            className="flex-row items-center gap-2"
+                            activeOpacity={0.7}
+                          >
+                            <Text
+                              numberOfLines={1}
+                              className="text-white font-bold text-xl tracking-tight"
+                            >
+                              {card.name}
+                            </Text>
+                            <Ionicons name="pencil" size={15} color="#71717A" />
+                          </TouchableOpacity>
+                        </View>
+
+                        {/* Center Frameless Action Triggers */}
+                        <View className="flex-row items-center justify-center gap-8 py-2">
                           <TouchableOpacity
                             onPress={() => handleCaptureCamera(card.id)}
                             activeOpacity={0.7}
-                            style={{ backgroundColor: "#27272A" }}
-                            className="flex-row items-center py-3 px-4 rounded-xl gap-2"
+                            className="items-center gap-2"
                           >
-                            <Ionicons name="camera" size={20} color="#FFFFFF" />
-                            <Text className="text-white font-semibold text-sm">
+                            <View className="w-14 h-14 rounded-full bg-zinc-800/80 items-center justify-center border border-zinc-700/60">
+                              <Ionicons name="camera" size={24} color="#38BDF8" />
+                            </View>
+                            <Text className="text-zinc-300 font-semibold text-xs">
                               Camera
                             </Text>
                           </TouchableOpacity>
 
-                          {/* Choose From Gallery */}
                           <TouchableOpacity
                             onPress={() => handleAttachGallery(card.id)}
                             activeOpacity={0.7}
-                            style={{ backgroundColor: "#27272A" }}
-                            className="flex-row items-center py-3 px-4 rounded-xl gap-2"
+                            className="items-center gap-2"
                           >
-                            <Ionicons name="images" size={20} color="#FFFFFF" />
-                            <Text className="text-white font-semibold text-sm">
+                            <View className="w-14 h-14 rounded-full bg-zinc-800/80 items-center justify-center border border-zinc-700/60">
+                              <Ionicons name="images" size={24} color="#FACC15" />
+                            </View>
+                            <Text className="text-zinc-300 font-semibold text-xs">
                               Photos
                             </Text>
                           </TouchableOpacity>
                         </View>
+
+                        {/* Subtitle bottom */}
+                        <Text className="text-zinc-500 text-xs text-center font-medium">
+                          Attach PWD, Senior, or Student pass photo
+                        </Text>
                       </View>
                     )}
-
-                    {/* Card Footer */}
-                    <View className="flex-row items-center justify-between z-10 pt-1">
-                      {hasPhoto ? (
-                        <Text className="text-[#8E8E93] text-xs font-medium">
-                          Tap card to view fullscreen
-                        </Text>
-                      ) : (
-                        <Text className="text-[#71717A] text-xs font-medium">
-                          Attach photo for conductor inspection
-                        </Text>
-                      )}
-                      {hasPhoto && (
-                        <Ionicons name="expand" size={18} color="#8E8E93" />
-                      )}
-                    </View>
                   </Pressable>
                 </View>
               );
             })}
           </ScrollView>
 
-          {/* Minimalist Paging Dots */}
-          <View className="flex-row justify-center items-center mt-5 gap-2">
+          {/* Peeking Carousel Paging Dots */}
+          <View className="flex-row justify-center items-center mt-6 gap-2">
             {cards.map((_, i) => (
               <View
                 key={i}
-                className={`h-2 rounded-full ${
-                  activeCardIndex === i ? "w-6 bg-white" : "w-2 bg-[#3F3F46]"
+                className={`h-1.5 rounded-full ${
+                  activeCardIndex === i ? "w-6 bg-white" : "w-1.5 bg-zinc-800"
                 }`}
               />
             ))}
           </View>
 
-          {/* Quick Action Bar (Update / Retake Photo) */}
+          {/* Frameless Quick Actions Below Carousel */}
           {Boolean(activeCard?.imageUri) && (
-            <View className="flex-row justify-center items-center gap-6 mt-6">
+            <View className="flex-row justify-center items-center gap-10 mt-6">
               <TouchableOpacity
                 onPress={() => handleCaptureCamera(activeCard.id)}
-                className="flex-row items-center gap-2 py-2 px-4 rounded-xl bg-[#18181B] border border-[#27272A]"
+                className="items-center gap-1.5"
                 activeOpacity={0.7}
               >
-                <Ionicons name="camera-outline" size={18} color="#FFFFFF" />
-                <Text className="text-white text-xs font-semibold">Camera</Text>
+                <Ionicons name="camera-outline" size={22} color="#FFFFFF" />
+                <Text className="text-zinc-400 text-[11px] font-semibold">
+                  Retake
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => handleAttachGallery(activeCard.id)}
-                className="flex-row items-center gap-2 py-2 px-4 rounded-xl bg-[#18181B] border border-[#27272A]"
+                className="items-center gap-1.5"
                 activeOpacity={0.7}
               >
-                <Ionicons name="image-outline" size={18} color="#FFFFFF" />
-                <Text className="text-white text-xs font-semibold">Photos</Text>
+                <Ionicons name="image-outline" size={22} color="#FFFFFF" />
+                <Text className="text-zinc-400 text-[11px] font-semibold">
+                  Photos
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => handleRemovePhoto(activeCard.id)}
-                className="py-2 px-3 rounded-xl bg-[#18181B] border border-[#27272A]"
+                onPress={() => handleDeleteCard(activeCard.id)}
+                className="items-center gap-1.5"
                 activeOpacity={0.7}
               >
-                <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                <Ionicons name="trash-outline" size={22} color="#EF4444" />
+                <Text className="text-red-400 text-[11px] font-semibold">
+                  Delete
+                </Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
       </ScrollView>
+
+      {/* MODERN TESLA/APPLE STYLE PRIVACY BOTTOM SHEET */}
+      <Modal
+        visible={showPrivacySheet}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowPrivacySheet(false)}
+      >
+        <Pressable
+          onPress={() => setShowPrivacySheet(false)}
+          className="flex-1 bg-black/80 justify-end"
+        >
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            className="bg-zinc-950 border-t border-zinc-800 rounded-t-[32px] px-6 pt-4 pb-8"
+          >
+            {/* Grab Handle */}
+            <View className="w-10 h-1 rounded-full bg-zinc-700 self-center mb-6" />
+
+            {/* Radiant Verified Shield */}
+            <View className="items-center mb-4">
+              <View className="w-16 h-16 rounded-full bg-emerald-950/80 border border-emerald-500/30 items-center justify-center mb-3">
+                <Ionicons name="shield-checkmark" size={32} color="#34D399" />
+              </View>
+              <Text className="text-white text-2xl font-black text-center tracking-tight">
+                Stored Only on Your Device
+              </Text>
+              <Text className="text-zinc-400 text-xs text-center mt-1">
+                Zero Cloud Transmission • 100% Private Offline Storage
+              </Text>
+            </View>
+
+            {/* Feature Points */}
+            <View className="gap-3.5 my-4 bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800/80">
+              <View className="flex-row items-center gap-3">
+                <Ionicons name="phone-portrait-outline" size={20} color="#38BDF8" />
+                <View className="flex-1">
+                  <Text className="text-white font-bold text-sm">
+                    100% Local Sandboxed Storage
+                  </Text>
+                  <Text className="text-zinc-400 text-xs">
+                    Your ID photos stay inside your phone's isolated app directory.
+                  </Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center gap-3">
+                <Ionicons name="cloud-offline-outline" size={20} color="#FACC15" />
+                <View className="flex-1">
+                  <Text className="text-white font-bold text-sm">
+                    No Cloud Servers or Tracking
+                  </Text>
+                  <Text className="text-zinc-400 text-xs">
+                    Never uploaded to online databases or shared with third parties.
+                  </Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center gap-3">
+                <Ionicons name="trash-bin-outline" size={20} color="#34D399" />
+                <View className="flex-1">
+                  <Text className="text-white font-bold text-sm">
+                    Instant Disk Erasure
+                  </Text>
+                  <Text className="text-zinc-400 text-xs">
+                    Deleting an ID card permanently removes its image from your disk.
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Close Button */}
+            <TouchableOpacity
+              onPress={() => setShowPrivacySheet(false)}
+              className="bg-white py-3.5 rounded-full items-center mt-2"
+              activeOpacity={0.85}
+            >
+              <Text className="text-black font-black text-sm tracking-wider uppercase">
+                Got it
+              </Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* RENAME MODAL */}
       <Modal
@@ -301,8 +425,8 @@ export default function IDCardTab() {
         onRequestClose={() => setEditingCardId(null)}
       >
         <View className="flex-1 bg-black/80 items-center justify-center px-6">
-          <View className="w-full bg-[#18181B] border border-[#27272A] rounded-2xl p-6">
-            <Text className="text-white text-xl font-bold mb-4">
+          <View className="w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+            <Text className="text-white text-xl font-bold mb-3">
               Rename ID Card
             </Text>
             <TextInput
@@ -310,22 +434,23 @@ export default function IDCardTab() {
               onChangeText={setRenameText}
               placeholder="e.g. PWD ID, Senior ID, School ID"
               placeholderTextColor="#71717A"
-              className="bg-[#27272A] text-white px-4 py-3 rounded-xl text-base mb-6"
+              className="bg-zinc-800 text-white px-4 py-3 rounded-2xl text-base mb-5"
               autoFocus
               selectTextOnFocus
+              maxLength={40}
             />
             <View className="flex-row justify-end gap-3">
               <TouchableOpacity
                 onPress={() => setEditingCardId(null)}
                 className="py-2.5 px-4 rounded-xl"
               >
-                <Text className="text-[#8E8E93] font-semibold text-base">
+                <Text className="text-zinc-400 font-semibold text-base">
                   Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={submitRename}
-                className="bg-white py-2.5 px-5 rounded-xl"
+                className="bg-white py-2.5 px-6 rounded-full"
               >
                 <Text className="text-black font-bold text-base">
                   Save
@@ -343,7 +468,7 @@ export default function IDCardTab() {
         animationType="fade"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View className="flex-1 bg-[#000000]">
+        <View className="flex-1 bg-black">
           <StatusBar hidden />
 
           {/* Top Bar */}
@@ -352,7 +477,7 @@ export default function IDCardTab() {
               onPress={() => setModalVisible(false)}
               hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
             >
-              <Ionicons name="close" size={32} color="#FFFFFF" />
+              <Ionicons name="close" size={30} color="#FFFFFF" />
             </TouchableOpacity>
 
             <Text className="text-white font-bold text-lg">
@@ -363,7 +488,7 @@ export default function IDCardTab() {
               onPress={() => setRotation((prev) => (prev + 90) % 360)}
               hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
             >
-              <Ionicons name="refresh" size={28} color="#FFFFFF" />
+              <Ionicons name="refresh" size={26} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 

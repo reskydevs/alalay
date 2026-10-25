@@ -59,13 +59,13 @@ export default function TabLayout() {
         />
 
         <Tabs.Screen
-          name="WebMapTab"
+          name="VoicePromptsTab"
           options={{
-            title: "Navigation",
-            tabBarLabel: "Navigation",
+            title: "Communicate",
+            tabBarLabel: "Communicate",
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
-                name={focused ? "navigate" : "navigate-outline"}
+                name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"}
                 size={22}
                 color={focused ? "#FFFFFF" : color}
               />
@@ -74,13 +74,13 @@ export default function TabLayout() {
         />
 
         <Tabs.Screen
-          name="VoicePromptsTab"
+          name="WebMapTab"
           options={{
-            title: "Flashcards",
-            tabBarLabel: "Flashcards",
+            title: "Transit",
+            tabBarLabel: "Transit",
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
-                name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"}
+                name={focused ? "subway" : "subway-outline"}
                 size={22}
                 color={focused ? "#FFFFFF" : color}
               />

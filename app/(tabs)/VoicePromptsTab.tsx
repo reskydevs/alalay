@@ -54,7 +54,7 @@ const FLASHCARD_PRESETS: {
     id: "discount",
     label: "20% DISCOUNT",
     phrase: "PWD / SENIOR",
-    subtext: "Statutory 20% discount",
+    subtext: "20% discount (PWD, Senior, Student)",
     speech: "May legal discount po ako bilang P-W-D o Senior Citizen. Bayad po.",
     accent: "#38BDF8",
   },
@@ -125,7 +125,7 @@ export default function VoicePromptsTab() {
         {/* Minimalist Header (Single Settings Icon — Zero Duplicated Expand Buttons) */}
         <View className="px-6 pt-12 pb-3 flex-row items-center justify-between">
           <Text className="text-white font-bold text-3xl tracking-tight">
-            Flashcards
+            Communicate
           </Text>
 
           <TouchableOpacity
