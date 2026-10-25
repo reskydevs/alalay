@@ -4,17 +4,20 @@ import * as Location from "expo-location";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   BackHandler,
+  Linking,
   StatusBar,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView, WebViewMessageEvent, WebViewNavigation } from "react-native-webview";
 
 const DEFAULT_MAP_URL =
-  "https://www.google.com/maps/@14.5995,120.9842,15z?hl=en&entry=ml&utm_campaign=ml-sr";
+  "https://www.google.com/maps/@14.5995,120.9842,15z?hl=en";
 
 export default function WebMapTab() {
+  const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
   const [mapUrl, setMapUrl] = useState(DEFAULT_MAP_URL);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -72,7 +75,7 @@ export default function WebMapTab() {
     return false;
   }, [canGoBack, isSignInPage, returnToMapsFromSignIn]);
 
-  // Hook Android hardware back button/gesture so user is never stuck in Sign-In or subpages
+  // Hook Android hardware back gesture
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
       if (
@@ -87,7 +90,7 @@ export default function WebMapTab() {
     return () => sub.remove();
   }, [canGoBack, isSignInPage, handleGoBack]);
 
-  // Request high-accuracy GPS and initialize map centered directly on user's location
+  // Request high-accuracy GPS on startup
   useEffect(() => {
     (async () => {
       try {
@@ -98,7 +101,7 @@ export default function WebMapTab() {
           });
           const { latitude, longitude } = loc.coords;
           setUserCoords({ lat: latitude, lng: longitude });
-          const initialUrl = `https://www.google.com/maps/@${latitude},${longitude},16z?hl=en&entry=ml&utm_campaign=ml-sr`;
+          const initialUrl = `https://www.google.com/maps/@${latitude},${longitude},16z?hl=en`;
           lastMapsUrlRef.current = initialUrl;
           currentWebUrlRef.current = initialUrl;
           setMapUrl(initialUrl);
@@ -107,31 +110,27 @@ export default function WebMapTab() {
     })();
   }, []);
 
-  const buildDirectionsUrl = useCallback(
-    (destQuery: string, origQuery?: string) => {
-      const start = origQuery?.trim() || (userCoords ? `${userCoords.lat},${userCoords.lng}` : "");
-      const end = destQuery.trim();
-      if (!end && !start) {
-        return `https://www.google.com/maps/dir/?hl=en&entry=ml&utm_campaign=ml-sr`;
-      }
-      if (start && end) {
-        return `https://www.google.com/maps/dir/${encodeURIComponent(
-          start
-        )}/${encodeURIComponent(end)}?hl=en&entry=ml&utm_campaign=ml-sr`;
-      }
-      if (end) {
-        return `https://www.google.com/maps/dir//${encodeURIComponent(
-          end
-        )}?hl=en&entry=ml&utm_campaign=ml-sr`;
-      }
-      return `https://www.google.com/maps/dir/${encodeURIComponent(
-        start
-      )}/?hl=en&entry=ml&utm_campaign=ml-sr`;
-    },
-    [userCoords]
-  );
+  // Open native Google Maps app for turn-by-turn GPS navigation
+  const openNativeMapsApp = useCallback(() => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch {}
+    const currentUrl = currentWebUrlRef.current;
+    if (currentUrl.includes("/maps/dir/")) {
+      Linking.openURL(currentUrl).catch(() => {
+        const fallback = userCoords
+          ? `google.navigation:q=${userCoords.lat},${userCoords.lng}`
+          : "geo:0,0?q=transit";
+        Linking.openURL(fallback).catch(() => {});
+      });
+    } else if (userCoords) {
+      Linking.openURL(`geo:${userCoords.lat},${userCoords.lng}?q=transit`).catch(() => {});
+    } else {
+      Linking.openURL("https://www.google.com/maps").catch(() => {});
+    }
+  }, [userCoords]);
 
-  // Runs BEFORE Google Maps scripts load: sets internal flags for native web routing
+  // Injected JS before content loads
   const INJECTED_BEFORE_LOAD_JS = `
     (function() {
       try {
@@ -150,255 +149,50 @@ export default function WebMapTab() {
     true;
   `;
 
-  // Runs after page load: auto-clicks "Your location", auto-expands Directions drawer (Drive, Two-wheeler, Walk),
-  // suppresses app banners, and hooks intent links
+  // Injected JS: cleans banners and hooks the "Start" button to launch native turn-by-turn navigation
   const INJECTED_JS = `
     (function() {
       if (window.__parapoNavHooked) return;
       window.__parapoNavHooked = true;
 
-      try {
-        localStorage.setItem('decommissionedagmm', Date.now().toString());
-        localStorage.setItem('igmmstate', JSON.stringify({ state: '0', timestamp: Date.now() }));
-      } catch (e) {}
-
-      window.open = function(url) {
-        if (url) {
-          window.location.href = url;
-        }
-        return window;
-      };
-
-      // Auto-trigger "Your location" and expand "Directions: Drive, Two-wheeler, Walk"
-      function triggerLocationAndDirectionsDrawer() {
-        var buttons = document.querySelectorAll('button, div[role="button"], a, span');
-
-        // 1. Activate "Your location" GPS button
-        for (var i = 0; i < buttons.length; i++) {
-          var aria = (buttons[i].getAttribute('aria-label') || '').toLowerCase();
-          var dataTip = (buttons[i].getAttribute('data-tooltip') || '').toLowerCase();
-          var jsact = (buttons[i].getAttribute('jsaction') || '').toLowerCase();
-          if (
-            aria.indexOf('your location') !== -1 ||
-            dataTip.indexOf('your location') !== -1 ||
-            jsact.indexOf('my_location') !== -1 ||
-            aria === 're-center' ||
-            aria.indexOf('lokasyon mo') !== -1
-          ) {
-            buttons[i].click();
-            break;
-          }
-        }
-
-        // 2. Expand "Quick actions / Directions: Drive, Two-wheeler, Walk" drawer if collapsed
-        for (var j = 0; j < buttons.length; j++) {
-          var txt = (buttons[j].innerText || buttons[j].textContent || '').trim().toLowerCase();
-          if (
-            txt.indexOf('quick actions') !== -1 ||
-            txt.indexOf('tap to see') !== -1 ||
-            txt === 'directions' ||
-            txt.indexOf('mga direksyon') !== -1
-          ) {
-            buttons[j].click();
-            break;
-          }
-        }
-      }
-
-      // Execute on startup with retries as map DOM stabilizes
-      setTimeout(triggerLocationAndDirectionsDrawer, 800);
-      setTimeout(triggerLocationAndDirectionsDrawer, 1800);
-      setTimeout(triggerLocationAndDirectionsDrawer, 3200);
-
+      // Clean annoying promo popups without triggering blank search overlays
       function cleanGoogleMapsDom() {
-        var promo = document.querySelector('.ml-persistent-promo-banner, #CfMG9b');
+        var promo = document.querySelector('.ml-persistent-promo-banner, #CfMG9b, .ml-app-promo-banner');
         if (promo) {
           promo.style.display = 'none';
         }
-        var buttons = document.querySelectorAll('button, a, div[role="button"], span');
-        for (var i = 0; i < buttons.length; i++) {
-          var txt = (buttons[i].innerText || buttons[i].textContent || '').trim().toLowerCase();
-          if (
-            txt === 'keep using web' ||
-            txt === 'stay on web' ||
-            txt === 'use the web' ||
-            txt === 'manatili sa web' ||
-            txt === 'gamitin ang web'
-          ) {
-            buttons[i].click();
-          }
-        }
       }
       cleanGoogleMapsDom();
-      setInterval(cleanGoogleMapsDom, 600);
+      setInterval(cleanGoogleMapsDom, 800);
 
-      function expandRouteStepsInPage() {
-        var els = document.querySelectorAll('button, [role="button"], a, span, div');
-        for (var i = 0; i < els.length; i++) {
-          var txt = (els[i].innerText || els[i].textContent || '').trim().toLowerCase();
-          var aria = (els[i].getAttribute && (els[i].getAttribute('aria-label') || '')).toLowerCase();
-          if (
-            txt === 'steps' ||
-            txt === 'preview' ||
-            txt === 'steps & more' ||
-            txt === 'list' ||
-            aria.indexOf('step') !== -1 ||
-            aria.indexOf('preview') !== -1
-          ) {
-            els[i].click();
-            return true;
-          }
-        }
-        return false;
-      }
-
-      window.__parapoExpandSteps = expandRouteStepsInPage;
-
+      // Listen for "Start" navigation clicks to launch the native Google Maps app
       document.addEventListener('click', function(e) {
         var el = e.target;
-        var label = '';
         for (var depth = 0; el && depth < 6; depth++, el = el.parentElement) {
-          var txt = (el.innerText || el.textContent || '').trim();
-          var aria = (el.getAttribute && (el.getAttribute('aria-label') || '')).trim();
-          var combined = (aria || txt).toLowerCase();
+          var txt = (el.innerText || el.textContent || '').trim().toLowerCase();
+          var aria = (el.getAttribute && (el.getAttribute('aria-label') || '')).toLowerCase();
           if (
-            combined === 'directions' ||
-            combined === 'start' ||
-            combined.indexOf('directions to') === 0 ||
-            combined.indexOf('navigate') === 0
+            txt === 'start' ||
+            aria === 'start' ||
+            txt === 'simulan' ||
+            txt.indexOf('start navigation') !== -1
           ) {
-            label = combined;
-            break;
-          }
-        }
-        if (!label) return;
-
-        var urlBefore = window.location.href;
-        setTimeout(function() {
-          if (window.location.href.indexOf('/maps/dir/') !== -1 && label === 'start') {
-            expandRouteStepsInPage();
-            return;
-          }
-          if (window.location.href.indexOf('/maps/dir/') === -1 && window.location.href === urlBefore) {
             if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
               window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'FORCE_DIRECTIONS',
-                action: label,
+                type: 'START_NAVIGATION',
                 currentUrl: window.location.href
               }));
             }
+            break;
           }
-        }, 320);
+        }
       }, true);
     })();
     true;
   `;
 
-  const resolveMapsIntentToWebUrl = useCallback(
-    (rawUrl: string): string | null => {
-      let candidate = rawUrl;
-
-      // 1. Unwrap ?link=... or ?deep_link_id=...
-      const linkMatch =
-        rawUrl.match(/[?&]link=([^&#;]+)/) ||
-        rawUrl.match(/[?&]deep_link_id=([^&#;]+)/);
-      if (linkMatch?.[1]) {
-        try {
-          candidate = decodeURIComponent(linkMatch[1]);
-        } catch {}
-      } else if (rawUrl.startsWith("intent://")) {
-        const beforeIntent = rawUrl.split("#Intent")[0].replace(/^intent:\/\//, "https://");
-        const innerLink = beforeIntent.match(/[?&]link=([^&#;]+)/);
-        if (innerLink?.[1]) {
-          try {
-            candidate = decodeURIComponent(innerLink[1]);
-          } catch {}
-        } else if (
-          beforeIntent.includes("google.com/maps") ||
-          beforeIntent.includes("maps.google.com")
-        ) {
-          candidate = beforeIntent;
-        } else {
-          const fbMatch = rawUrl.match(/S\.browser_fallback_url=([^;]+)/);
-          if (fbMatch?.[1]) {
-            try {
-              const decodedFb = decodeURIComponent(fbMatch[1]);
-              const nestedUrl = decodedFb.match(/[?&]url=([^&#;]+)/);
-              if (nestedUrl?.[1]) {
-                candidate = decodeURIComponent(nestedUrl[1]);
-              } else if (!decodedFb.includes("play.google.com")) {
-                candidate = decodedFb;
-              }
-            } catch {}
-          }
-        }
-      }
-
-      const start = userCoords ? `${userCoords.lat},${userCoords.lng}` : "";
-
-      // 2. Check for google.navigation:q=... or daddr=... or destination=...
-      const destParamMatch =
-        candidate.match(/[?&]daddr=([^&#;]+)/) ||
-        candidate.match(/[?&]destination=([^&#;]+)/) ||
-        candidate.match(/google\.navigation:q=([^&#;]+)/) ||
-        candidate.match(/[?&]q=([^&#;]+)/);
-      if (destParamMatch?.[1]) {
-        try {
-          const dest = decodeURIComponent(destParamMatch[1].replace(/\+/g, " "));
-          return buildDirectionsUrl(dest, start);
-        } catch {}
-      }
-
-      // 3. If the intent points to /maps/place/PlaceName/..., convert it into a /maps/dir/ route!
-      const placeMatch = candidate.match(/\/maps\/place\/([^/?#]+)/);
-      if (placeMatch?.[1]) {
-        try {
-          const placeName = decodeURIComponent(placeMatch[1].replace(/\+/g, " "));
-          return buildDirectionsUrl(placeName, start);
-        } catch {}
-      }
-
-      // 4. If the intent points to /maps/search/Query/..., convert it into a /maps/dir/ route!
-      const searchMatch = candidate.match(/\/maps\/search\/([^/?#]+)/);
-      if (searchMatch?.[1]) {
-        try {
-          const searchName = decodeURIComponent(searchMatch[1].replace(/\+/g, " "));
-          return buildDirectionsUrl(searchName, start);
-        } catch {}
-      }
-
-      // 5. If the intent is already /maps/dir/..., strip dir_action=navigate
-      if (candidate.includes("/maps/dir/")) {
-        let cleanDir = candidate
-          .replace(/^intent:\/\//, "https://")
-          .split("#Intent")[0]
-          .replace(/([?&])dir_action=navigate(&?)/g, "$1")
-          .replace(/[?&]$/, "");
-
-        if (cleanDir.includes("/maps/dir//") && start) {
-          cleanDir = cleanDir.replace(
-            "/maps/dir//",
-            `/maps/dir/${encodeURIComponent(start)}/`
-          );
-        }
-        if (!cleanDir.includes("utm_campaign=")) {
-          cleanDir += (cleanDir.includes("?") ? "&" : "?") + "entry=ml&utm_campaign=ml-sr";
-        }
-        return cleanDir;
-      }
-
-      // 6. Bare camera link fallback
-      if (candidate.includes("google.com/maps") || candidate.includes("maps.google.com")) {
-        return buildDirectionsUrl("", start);
-      }
-
-      return null;
-    },
-    [buildDirectionsUrl, userCoords]
-  );
-
   const handleShouldStartLoad = (url: string): boolean => {
-    // Detect Google Sign-In pages (e.g., when user presses "Save") so we show the Back to Maps bar
+    // Detect Google Sign-In
     if (
       url.includes("accounts.google.com") ||
       url.includes("ServiceLogin")
@@ -408,30 +202,18 @@ export default function WebMapTab() {
       return true;
     }
 
-    // Intercept maps.app.goo.gl, intent://, comgooglemapsurl://, google.navigation:, geo:
+    // Launch native navigation when google.navigation: or dir_action=navigate is requested
     if (
-      url.startsWith("intent://") ||
-      url.startsWith("comgooglemapsurl://") ||
       url.startsWith("google.navigation:") ||
-      url.startsWith("geo:") ||
-      url.includes("maps.app.goo.gl")
+      url.includes("dir_action=navigate") ||
+      (url.startsWith("intent://") && (url.includes("google.navigation") || url.includes("dir_action=navigate")))
     ) {
-      const wasAlreadyOnDir = currentWebUrlRef.current.includes("/maps/dir/");
-      const resolved = resolveMapsIntentToWebUrl(url);
-      if (resolved) {
-        if (wasAlreadyOnDir && resolved === currentWebUrlRef.current) {
-          webViewRef.current?.injectJavaScript(
-            `if (window.__parapoExpandSteps) { window.__parapoExpandSteps(); } true;`
-          );
-        } else {
-          navigateWebViewTo(resolved);
-          setTimeout(() => {
-            webViewRef.current?.injectJavaScript(
-              `if (window.__parapoExpandSteps) { window.__parapoExpandSteps(); } true;`
-            );
-          }, 1200);
-        }
+      let launchTarget = url;
+      if (url.startsWith("intent://")) {
+        const clean = url.split("#Intent")[0].replace(/^intent:\/\//, "https://");
+        launchTarget = clean;
       }
+      Linking.openURL(launchTarget).catch(() => {});
       return false;
     }
 
@@ -453,12 +235,9 @@ export default function WebMapTab() {
   const handleWebViewMessage = (event: WebViewMessageEvent) => {
     try {
       const payload = JSON.parse(event.nativeEvent.data);
-      if (payload?.type?.trim() === "FORCE_DIRECTIONS") {
-        const currentUrl = payload.currentUrl || "";
-        const target = resolveMapsIntentToWebUrl(currentUrl);
-        if (target) {
-          navigateWebViewTo(target);
-        }
+      if (payload?.type === "START_NAVIGATION") {
+        const targetUrl = payload.currentUrl || currentWebUrlRef.current;
+        Linking.openURL(targetUrl).catch(() => {});
       }
     } catch {}
   };
@@ -481,10 +260,16 @@ export default function WebMapTab() {
   };
 
   return (
-    <View className="flex-1 bg-[#000000] pt-10">
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "#000000",
+        paddingTop: Math.max(insets.top, 24),
+      }}
+    >
       <StatusBar barStyle="light-content" />
 
-      {/* Sleek Minimal Header (Back button only when needed, no black input boxes) */}
+      {/* Top Header Bar (Back button when needed) */}
       {(canGoBack || isSignInPage) && (
         <View className="px-5 pb-2 flex-row items-center justify-between">
           <TouchableOpacity
@@ -511,7 +296,7 @@ export default function WebMapTab() {
         </View>
       )}
 
-      {/* Full-Bleed Interactive Google Maps Canvas */}
+      {/* Map Canvas */}
       <View className="flex-1 bg-[#000000]">
         <WebView
           ref={webViewRef}
@@ -533,6 +318,35 @@ export default function WebMapTab() {
           userAgent="Mozilla/5.0 (Linux; Android 15; A059P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36"
           className="flex-1"
         />
+
+        {/* Floating Turn-by-Turn GPS Launcher Pill */}
+        <View
+          style={{
+            position: "absolute",
+            bottom: 16,
+            right: 16,
+            zIndex: 10,
+          }}
+        >
+          <TouchableOpacity
+            onPress={openNativeMapsApp}
+            activeOpacity={0.85}
+            style={{
+              backgroundColor: "#1D4ED8",
+              shadowColor: "#000000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.5,
+              shadowRadius: 8,
+              elevation: 8,
+            }}
+            className="flex-row items-center px-4 py-3 rounded-full gap-2 border border-blue-400"
+          >
+            <Ionicons name="navigate" size={18} color="#FFFFFF" />
+            <Text className="text-white font-bold text-xs tracking-wider uppercase">
+              Start Turn-by-Turn
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );

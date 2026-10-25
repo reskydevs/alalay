@@ -53,14 +53,14 @@ export default function FlashcardScene({
   });
 
   return (
-    <View className="w-full h-48 items-center justify-center overflow-hidden my-1">
+    <View className="w-full h-56 items-center justify-center overflow-hidden my-2">
       {/* Flat Background Canvas — Zero Glow on Visuals */}
       <View
         style={{
           position: "absolute",
-          width: 136,
-          height: 136,
-          borderRadius: 68,
+          width: 160,
+          height: 160,
+          borderRadius: 80,
           backgroundColor: "#111113",
         }}
       />
@@ -68,7 +68,7 @@ export default function FlashcardScene({
       {/* 1. STOP HERE (PARA PO!) — Raised Hand Gesture + Curbside Marker */}
       {sceneType === "stop" && (
         <Animated.View style={{ transform: [{ translateY }] }}>
-          <Svg width="240" height="175" viewBox="0 0 240 175">
+          <Svg width="260" height="190" viewBox="0 0 240 175">
             {/* Outer Stop Octagon Badge */}
             <Polygon
               points="88,18 152,18 182,48 182,112 152,142 88,142 58,112 58,48"
@@ -100,7 +100,7 @@ export default function FlashcardScene({
       {/* 2. PASSING FARE (BAYAD PO!) — Cash Bill + Peso Coins Passing Forward */}
       {sceneType === "payment" && (
         <Animated.View style={{ transform: [{ translateX }] }}>
-          <Svg width="260" height="175" viewBox="0 0 260 175">
+          <Svg width="280" height="190" viewBox="0 0 260 175">
             {/* Crisp Peso Banknote */}
             <Rect x="42" y="42" width="145" height="78" rx="10" fill="#16A34A" />
             <Rect x="52" y="52" width="125" height="58" rx="6" fill="#22C55E" />
@@ -146,117 +146,125 @@ export default function FlashcardScene({
       {/* 3. 20% DISCOUNT (PWD / SENIOR) — Verified ID Card & -20% Badge */}
       {sceneType === "discount" && (
         <Animated.View style={{ transform: [{ translateY }] }}>
-          <Svg width="260" height="175" viewBox="0 0 260 175">
+          <Svg width="280" height="190" viewBox="0 0 260 175">
             {/* ID Pass Card */}
-            <Rect x="36" y="34" width="164" height="104" rx="14" fill="#1E293B" />
-            <Rect x="36" y="34" width="164" height="28" rx="10" fill="#2563EB" />
-            {/* Avatar Silhouette */}
-            <Circle cx="74" cy="92" r="16" fill="#FACC15" />
-            <Path d="M54 124 C54 108 94 108 94 124 Z" fill="#38BDF8" />
-            {/* ID Lines */}
-            <Rect x="106" y="78" width="74" height="10" rx="5" fill="#F8FAFC" />
-            <Rect x="106" y="96" width="52" height="8" rx="4" fill="#94A3B8" />
+            <Rect x="30" y="32" width="140" height="90" rx="10" fill="#1E293B" />
+            <Rect x="40" y="42" width="120" height="70" rx="6" fill="#334155" />
+            {/* ID Avatar Outline */}
+            <Circle cx="64" cy="68" r="14" fill="#64748B" />
+            <Rect x="48" y="86" width="32" height="14" rx="4" fill="#64748B" />
+            {/* ID Card Lines */}
+            <Rect x="88" y="58" width="60" height="6" rx="3" fill="#94A3B8" />
+            <Rect x="88" y="70" width="45" height="6" rx="3" fill="#94A3B8" />
+            <Rect x="88" y="82" width="52" height="6" rx="3" fill="#94A3B8" />
 
-            {/* Bold -20% Discount Pill Badge */}
-            <Circle cx="198" cy="112" r="34" fill="#16A34A" />
+            {/* Radiant 20% Discount Badge */}
+            <Circle cx="185" cy="95" r="38" fill="#0284C7" />
+            <Circle cx="185" cy="95" r="30" fill="#38BDF8" />
             <SvgText
-              x="198"
-              y="119"
+              x="185"
+              y="92"
               fill="#FFFFFF"
-              fontSize="21"
+              fontSize="16"
               fontWeight="bold"
               textAnchor="middle"
             >
               -20%
             </SvgText>
+            <SvgText
+              x="185"
+              y="108"
+              fill="#0F172A"
+              fontSize="10"
+              fontWeight="bold"
+              textAnchor="middle"
+            >
+              DISCOUNT
+            </SvgText>
           </Svg>
         </Animated.View>
       )}
 
-      {/* 4. CHANGE PLEASE (SUKLI PO!) — Golden Coins Dropping Into Open Hand */}
+      {/* 4. CHANGE PLEASE (SUKLI PO!) — Coins Dropping into Open Hand */}
       {sceneType === "change" && (
-        <View className="items-center justify-center">
-          <Animated.View style={{ transform: [{ translateY }] }}>
-            <Svg width="240" height="95" viewBox="0 0 240 95">
-              {/* 3 Gleaming Coins */}
-              <Circle cx="82" cy="48" r="22" fill="#FACC15" />
-              <SvgText
-                x="82"
-                y="55"
-                fill="#18181B"
-                fontSize="18"
-                fontWeight="bold"
-                textAnchor="middle"
-              >
-                ₱5
-              </SvgText>
-
-              <Circle cx="126" cy="30" r="25" fill="#EAB308" />
-              <SvgText
-                x="126"
-                y="38"
-                fill="#18181B"
-                fontSize="20"
-                fontWeight="bold"
-                textAnchor="middle"
-              >
-                ₱10
-              </SvgText>
-
-              <Circle cx="168" cy="52" r="20" fill="#FACC15" />
-              <SvgText
-                x="168"
-                y="59"
-                fill="#18181B"
-                fontSize="17"
-                fontWeight="bold"
-                textAnchor="middle"
-              >
-                ₱1
-              </SvgText>
-            </Svg>
-          </Animated.View>
-
-          {/* Open Receiving Hand Underneath */}
-          <Svg width="240" height="70" viewBox="0 0 240 70">
+        <Animated.View style={{ transform: [{ translateY }] }}>
+          <Svg width="280" height="190" viewBox="0 0 260 175">
+            {/* Receiving Open Hand (Cupped Palm) */}
             <Path
-              d="M52 28 C72 48 168 48 190 24 C196 18 204 26 196 36 C172 62 68 62 44 36 C38 28 46 22 52 28 Z"
+              d="M50 120 C70 120, 85 135, 110 135 L170 135 C185 135, 195 125, 205 110 L215 95 C218 90, 212 85, 207 88 L185 102 L150 115 L105 115 L60 95 Z"
               fill="#FACC15"
             />
-            <Rect x="34" y="20" width="22" height="26" rx="6" fill="#2563EB" />
+            {/* 3 Falling Peso Coins with Drop Shadows */}
+            <Circle cx="115" cy="40" r="18" fill="#CA8A04" />
+            <Circle cx="115" cy="40" r="14" fill="#EAB308" />
+            <SvgText
+              x="115"
+              y="46"
+              fill="#18181B"
+              fontSize="14"
+              fontWeight="bold"
+              textAnchor="middle"
+            >
+              ₱10
+            </SvgText>
+
+            <Circle cx="150" cy="55" r="16" fill="#CA8A04" />
+            <Circle cx="150" cy="55" r="12" fill="#FACC15" />
+            <SvgText
+              x="150"
+              y="60"
+              fill="#18181B"
+              fontSize="12"
+              fontWeight="bold"
+              textAnchor="middle"
+            >
+              ₱5
+            </SvgText>
+
+            <Circle cx="180" cy="72" r="13" fill="#CA8A04" />
+            <Circle cx="180" cy="72" r="10" fill="#FEF08A" />
+            <SvgText
+              x="180"
+              y="76"
+              fill="#18181B"
+              fontSize="10"
+              fontWeight="bold"
+              textAnchor="middle"
+            >
+              ₱1
+            </SvgText>
           </Svg>
-        </View>
+        </Animated.View>
       )}
 
-      {/* 5. PULL OVER (SA TABI LANG!) — Curbside Pin + Vehicle Gliding to Sidewalk */}
+      {/* 5. PULL OVER (SA TABI LANG!) — Vehicle Pulling to Curbside Pin */}
       {sceneType === "curbside" && (
         <Animated.View style={{ transform: [{ translateX }] }}>
-          <Svg width="260" height="175" viewBox="0 0 260 175">
-            {/* Crosswalk Stripes & Sidewalk */}
-            <Rect x="20" y="138" width="220" height="8" rx="4" fill="#FACC15" />
-            <Rect x="45" y="152" width="28" height="8" rx="2" fill="#FAFAFA" />
-            <Rect x="95" y="152" width="28" height="8" rx="2" fill="#FAFAFA" />
-            <Rect x="145" y="152" width="28" height="8" rx="2" fill="#FAFAFA" />
-            <Rect x="195" y="152" width="28" height="8" rx="2" fill="#FAFAFA" />
+          <Svg width="280" height="190" viewBox="0 0 260 175">
+            {/* Curbside Sidewalk & Crosswalk Striping */}
+            <Rect x="20" y="130" width="220" height="8" rx="4" fill="#475569" />
+            <Line x1="40" y1="134" x2="65" y2="134" stroke="#FACC15" strokeWidth="4" />
+            <Line x1="85" y1="134" x2="110" y2="134" stroke="#FACC15" strokeWidth="4" />
+            <Line x1="130" y1="134" x2="155" y2="134" stroke="#FACC15" strokeWidth="4" />
+            <Line x1="175" y1="134" x2="200" y2="134" stroke="#FACC15" strokeWidth="4" />
 
-            {/* Curbside Drop-Off Location Pin */}
-            <Path
-              d="M204 24 C188 24 176 36 176 52 C176 74 204 102 204 102 C204 102 232 74 232 52 C232 36 220 24 204 24 Z"
-              fill="#E82127"
-            />
-            <Circle cx="204" cy="52" r="10" fill="#FACC15" />
+            {/* Commuter Minibus / PUV Silhouette */}
+            <Rect x="40" y="65" width="125" height="55" rx="10" fill="#2563EB" />
+            <Rect x="48" y="73" width="30" height="20" rx="4" fill="#93C5FD" />
+            <Rect x="86" y="73" width="30" height="20" rx="4" fill="#93C5FD" />
+            <Rect x="124" y="73" width="32" height="20" rx="4" fill="#93C5FD" />
+            {/* Wheels */}
+            <Circle cx="68" cy="120" r="11" fill="#0F172A" />
+            <Circle cx="68" cy="120" r="5" fill="#94A3B8" />
+            <Circle cx="136" cy="120" r="11" fill="#0F172A" />
+            <Circle cx="136" cy="120" r="5" fill="#94A3B8" />
 
-            {/* Modern Commuter Vehicle Pulling to the Curb */}
+            {/* Location Pin at the Curb */}
             <Path
-              d="M32 82 L118 82 L138 102 L156 106 L156 124 L28 124 L28 92 Z"
-              fill="#2563EB"
+              d="M195 50 C185 50, 175 60, 175 72 C175 88, 195 110, 195 110 C195 110, 215 88, 215 72 C215 60, 205 50, 195 50 Z"
+              fill="#EF4444"
             />
-            <Rect x="44" y="88" width="30" height="16" rx="3" fill="#BAE6FD" />
-            <Rect x="82" y="88" width="32" height="16" rx="3" fill="#BAE6FD" />
-            <Circle cx="56" cy="126" r="14" fill="#18181B" />
-            <Circle cx="56" cy="126" r="7" fill="#94A3B8" />
-            <Circle cx="128" cy="126" r="14" fill="#18181B" />
-            <Circle cx="128" cy="126" r="7" fill="#94A3B8" />
+            <Circle cx="195" cy="72" r="7" fill="#FFFFFF" />
           </Svg>
         </Animated.View>
       )}

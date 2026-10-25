@@ -5,80 +5,28 @@ import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, Dimensions, useWindowDimensions } from "react-native";
 
-export interface CommuterIDCard {
+export interface UserIDCard {
   id: string;
-  title: string;
-  category: "pwd" | "senior" | "student" | "national" | "other";
-  issuer: string;
-  discountLabel: string;
+  name: string;
   imageUri: string | null;
-  accentColor: string;
-  gradientTop: string;
-  gradientBottom: string;
-  idNumberPreview: string;
-  holderName: string;
+  createdAt: number;
 }
 
-const STORAGE_KEY_CARDS = "user_wallet_cards_v2";
+const STORAGE_KEY_CARDS = "user_custom_id_cards_v3";
+const LEGACY_CARDS_KEY = "user_wallet_cards_v2";
 const LEGACY_STORAGE_KEY = "user_idcard_image_uri";
 
-export const INITIAL_WALLET_CARDS: CommuterIDCard[] = [
+export const DEFAULT_INITIAL_CARDS: UserIDCard[] = [
   {
-    id: "pwd-pass",
-    title: "PWD ID Pass",
-    category: "pwd",
-    issuer: "REPUBLIC OF THE PHILIPPINES",
-    discountLabel: "20% COMMUTER DISCOUNT",
+    id: "id_card_1",
+    name: "My ID",
     imageUri: null,
-    accentColor: "#38BDF8",
-    gradientTop: "#0C1E3A",
-    gradientBottom: "#030712",
-    idNumberPreview: "PWD-NCR-2026-••••",
-    holderName: "REGISTERED PWD COMMUTER",
-  },
-  {
-    id: "senior-pass",
-    title: "Senior Citizen Pass",
-    category: "senior",
-    issuer: "OFFICE FOR SENIOR CITIZENS AFFAIRS",
-    discountLabel: "20% STATUTORY DISCOUNT",
-    imageUri: null,
-    accentColor: "#F59E0B",
-    gradientTop: "#2A1805",
-    gradientBottom: "#030712",
-    idNumberPreview: "OSCA-QC-2026-••••",
-    holderName: "SENIOR CITIZEN PASS",
-  },
-  {
-    id: "student-pass",
-    title: "Student Commuter ID",
-    category: "student",
-    issuer: "COMMUTER STUDENT FARE",
-    discountLabel: "20% STUDENT DISCOUNT",
-    imageUri: null,
-    accentColor: "#22C55E",
-    gradientTop: "#062817",
-    gradientBottom: "#030712",
-    idNumberPreview: "STU-UNIV-2026-••••",
-    holderName: "VERIFIED STUDENT PASS",
-  },
-  {
-    id: "national-pass",
-    title: "National ID (PhilSys)",
-    category: "national",
-    issuer: "PHILIPPINE IDENTIFICATION SYSTEM",
-    discountLabel: "VALID GOVERNMENT ID",
-    imageUri: null,
-    accentColor: "#A855F7",
-    gradientTop: "#230E38",
-    gradientBottom: "#030712",
-    idNumberPreview: "PHIL-ID-••••-••••-••••",
-    holderName: "CITIZEN COMMUTER PASS",
+    createdAt: Date.now(),
   },
 ];
 
 export function useIDCard() {
-  const [cards, setCards] = useState<CommuterIDCard[]>(INITIAL_WALLET_CARDS);
+  const [cards, setCards] = useState<UserIDCard[]>(DEFAULT_INITIAL_CARDS);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const [zoomScale, setZoomScale] = useState(1);
@@ -98,20 +46,55 @@ export function useIDCard() {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEY_CARDS);
         if (stored) {
-          const parsed: CommuterIDCard[] = JSON.parse(stored);
+          const parsed: UserIDCard[] = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setCards(parsed);
             return;
           }
         }
 
-        // Migrate legacy single ID photo to the first card if exists
+        // Check if legacy cards had attached photos and migrate them
+        const legacyCardsRaw = await AsyncStorage.getItem(LEGACY_CARDS_KEY);
+        if (legacyCardsRaw) {
+          try {
+            const legacyCards = JSON.parse(legacyCardsRaw);
+            if (Array.isArray(legacyCards)) {
+              const existingWithPhotos = legacyCards
+                .filter((c) => c && c.imageUri)
+                .map((c, idx) => ({
+                  id: `id_card_${Date.now()}_${idx}`,
+                  name: c.title || `ID ${idx + 1}`,
+                  imageUri: c.imageUri,
+                  createdAt: Date.now() + idx,
+                }));
+              if (existingWithPhotos.length > 0) {
+                setCards(existingWithPhotos);
+                await AsyncStorage.setItem(
+                  STORAGE_KEY_CARDS,
+                  JSON.stringify(existingWithPhotos)
+                );
+                return;
+              }
+            }
+          } catch {}
+        }
+
+        // Migrate original single image if exists
         const legacyUri = await AsyncStorage.getItem(LEGACY_STORAGE_KEY);
         if (legacyUri) {
-          const migrated = [...INITIAL_WALLET_CARDS];
-          migrated[0].imageUri = legacyUri;
+          const migrated: UserIDCard[] = [
+            {
+              id: "id_card_1",
+              name: "My ID",
+              imageUri: legacyUri,
+              createdAt: Date.now(),
+            },
+          ];
           setCards(migrated);
-          await AsyncStorage.setItem(STORAGE_KEY_CARDS, JSON.stringify(migrated));
+          await AsyncStorage.setItem(
+            STORAGE_KEY_CARDS,
+            JSON.stringify(migrated)
+          );
         }
       } catch (e) {
         console.warn("[useIDCard] Failed to load cards:", e);
@@ -119,7 +102,7 @@ export function useIDCard() {
     })();
   }, []);
 
-  const saveCards = async (newCards: CommuterIDCard[]) => {
+  const saveCards = async (newCards: UserIDCard[]) => {
     setCards(newCards);
     try {
       await AsyncStorage.setItem(STORAGE_KEY_CARDS, JSON.stringify(newCards));
@@ -138,9 +121,59 @@ export function useIDCard() {
     if (!modalVisible) setRotation(0);
   }, [modalVisible]);
 
-  const activeCard = cards[activeCardIndex] || cards[0];
+  const activeCard = cards[activeCardIndex] || cards[0] || DEFAULT_INITIAL_CARDS[0];
 
-  const handleAttachPhoto = async (cardId: string) => {
+  const persistImageLocally = async (sourceUri: string, cardId: string) => {
+    try {
+      const fileExt = sourceUri.split(".").pop()?.split("?")[0] || "jpg";
+      const permanentFileName = `my_id_${cardId}_${Date.now()}.${fileExt}`;
+      const permanentPath = `${FileSystem.documentDirectory}${permanentFileName}`;
+
+      await FileSystem.copyAsync({
+        from: sourceUri,
+        to: permanentPath,
+      });
+      return permanentPath;
+    } catch {
+      return sourceUri;
+    }
+  };
+
+  // 1. Capture Photo with Camera
+  const handleCaptureCamera = async (cardId: string) => {
+    try {
+      Haptics.selectionAsync();
+    } catch {}
+
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Camera Permission Needed",
+        "Please grant camera access to take a picture of your ID."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets?.length > 0) {
+      const rawUri = result.assets[0].uri;
+      const permanentUri = await persistImageLocally(rawUri, cardId);
+      const updated = cards.map((c) =>
+        c.id === cardId ? { ...c, imageUri: permanentUri } : c
+      );
+      await saveCards(updated);
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
+    }
+  };
+
+  // 2. Choose Photo from Gallery
+  const handleAttachGallery = async (cardId: string) => {
     try {
       Haptics.selectionAsync();
     } catch {}
@@ -148,8 +181,8 @@ export function useIDCard() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
-        "Permission required",
-        "Please allow access to your photos to attach your physical ID card."
+        "Photo Permission Needed",
+        "Please grant photo library access to choose your ID photo."
       );
       return;
     }
@@ -161,33 +194,19 @@ export function useIDCard() {
     });
 
     if (!result.canceled && result.assets?.length > 0) {
-      const sourceUri = result.assets[0].uri;
+      const rawUri = result.assets[0].uri;
+      const permanentUri = await persistImageLocally(rawUri, cardId);
+      const updated = cards.map((c) =>
+        c.id === cardId ? { ...c, imageUri: permanentUri } : c
+      );
+      await saveCards(updated);
       try {
-        const fileExt = sourceUri.split(".").pop()?.split("?")[0] || "jpg";
-        const permanentFileName = `wallet_card_${cardId}_${Date.now()}.${fileExt}`;
-        const permanentPath = `${FileSystem.documentDirectory}${permanentFileName}`;
-
-        await FileSystem.copyAsync({
-          from: sourceUri,
-          to: permanentPath,
-        });
-
-        const updated = cards.map((c) =>
-          c.id === cardId ? { ...c, imageUri: permanentPath } : c
-        );
-        await saveCards(updated);
-        try {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch {}
-      } catch (err) {
-        const updated = cards.map((c) =>
-          c.id === cardId ? { ...c, imageUri: sourceUri } : c
-        );
-        await saveCards(updated);
-      }
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
     }
   };
 
+  // 3. Remove Photo from Card
   const handleRemovePhoto = async (cardId: string) => {
     try {
       Haptics.selectionAsync();
@@ -198,13 +217,58 @@ export function useIDCard() {
     await saveCards(updated);
   };
 
+  // 4. Rename Card
+  const handleRenameCard = async (cardId: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const updated = cards.map((c) =>
+      c.id === cardId ? { ...c, name: trimmed } : c
+    );
+    await saveCards(updated);
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {}
+  };
+
+  // 5. Add a New Card
+  const handleAddCard = async (initialName?: string) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch {}
+    const newCard: UserIDCard = {
+      id: `id_card_${Date.now()}`,
+      name: initialName?.trim() || `ID ${cards.length + 1}`,
+      imageUri: null,
+      createdAt: Date.now(),
+    };
+    const updated = [...cards, newCard];
+    await saveCards(updated);
+    setActiveCardIndex(updated.length - 1);
+  };
+
+  // 6. Delete Card
+  const handleDeleteCard = async (cardId: string) => {
+    if (cards.length <= 1) {
+      // Clear photo instead of deleting last card
+      await handleRemovePhoto(cardId);
+      return;
+    }
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    } catch {}
+    const updated = cards.filter((c) => c.id !== cardId);
+    await saveCards(updated);
+    setActiveCardIndex(Math.max(0, activeCardIndex - 1));
+  };
+
+  // 7. Privacy Info Dialog (No borrowed names, 100% on-device)
   const showPrivacyInfo = () => {
     try {
       Haptics.selectionAsync();
     } catch {}
     Alert.alert(
-      "Google Wallet Style Security",
-      "All your commuter discount IDs are stored 100% offline inside your phone's encrypted application sandbox (expo-file-system). Your photos never touch external servers or the cloud."
+      "Private On-Device Storage",
+      "Your ID photos are stored locally on your device. They are never uploaded online or to the cloud."
     );
   };
 
@@ -221,8 +285,12 @@ export function useIDCard() {
     setRotation,
     orientation,
     imageZoomRef,
-    handleAttachPhoto,
+    handleCaptureCamera,
+    handleAttachGallery,
     handleRemovePhoto,
+    handleRenameCard,
+    handleAddCard,
+    handleDeleteCard,
     showPrivacyInfo,
     window,
     minScale,

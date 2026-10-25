@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -77,6 +78,7 @@ const FLASHCARD_SLIDES: FlashcardData[] = [
 const DISTANCE_PRESETS = [4, 6, 8, 10, 15];
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const {
     commuteMode,
     setCommuteMode,
@@ -147,15 +149,21 @@ export default function HomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#000000] pt-8">
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "#000000",
+        paddingTop: Math.max(insets.top, 24),
+      }}
+    >
       <StatusBar barStyle="light-content" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 36, paddingTop: 4 }}
+        contentContainerStyle={{ paddingBottom: 32, paddingTop: 4 }}
       >
-        {/* HERO: SWIPEABLE FLASHCARDS (UNBOXED FULL CANVAS) */}
-        <View className="mt-2">
+        {/* HERO: SWIPEABLE FLASHCARDS (GENEROUS FULL CANVAS) */}
+        <View className="mt-1">
           <ScrollView
             ref={scrollRef}
             horizontal
@@ -171,7 +179,7 @@ export default function HomeScreen() {
                 activeOpacity={0.92}
                 onPress={() => handleOpenFullscreen(slide)}
                 style={{ width: SCREEN_WIDTH }}
-                className="px-6 py-2 justify-center items-center"
+                className="px-6 py-1 justify-center items-center"
               >
                 <Animated.View
                   style={{
@@ -186,7 +194,7 @@ export default function HomeScreen() {
                     isSpeaking={isSpeaking}
                   />
 
-                  <Text className="text-[#8E8E93] text-lg font-bold uppercase tracking-widest mt-4">
+                  <Text className="text-[#8E8E93] text-lg font-bold uppercase tracking-widest mt-2">
                     {slide.label}
                   </Text>
 
@@ -223,8 +231,8 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* LARGE CHATGPT VOICE MODE ORB + GLOWING SPEAK TRIGGER */}
-        <View className="items-center justify-center mt-6 mb-4">
+        {/* CHATGPT / GEMINI LIVE VOICE MODE ORB */}
+        <View className="items-center justify-center mt-4 mb-2">
           <VoiceOrb
             isSpeaking={isSpeaking}
             onPress={() => handleSpeak(currentSlide.speechText)}
@@ -234,8 +242,9 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* SINGLE UNIQUE TELEMETRY ROW (Zero Duplicated Tab Links) */}
-        <View className="px-6 mt-4">
+        {/* FARE GUIDE & PUV COMMUTE QUICK PANEL (UTILIZING SCREEN SPACE) */}
+        <View className="px-6 mt-2">
+          {/* Main Fare Header Row */}
           <TouchableOpacity
             onPress={() => {
               try {
@@ -244,25 +253,122 @@ export default function HomeScreen() {
               setShowFareModal(true);
             }}
             activeOpacity={0.6}
-            className="py-5 flex-row items-center justify-between"
+            className="py-3 flex-row items-center justify-between"
           >
             <View className="flex-row items-center">
-              <MaterialCommunityIcons name="speedometer" size={32} color="#8E8E93" />
-              <View className="ml-5">
+              <MaterialCommunityIcons name="speedometer" size={30} color="#8E8E93" />
+              <View className="ml-4">
                 <Text className="text-white text-2xl font-bold">
                   Fare Guide
                 </Text>
-                <Text className="text-[#8E8E93] text-lg font-medium mt-0.5">
+                <Text className="text-[#8E8E93] text-base font-medium mt-0.5">
                   ₱{fareBreakdown.totalFare.toFixed(0)} • {selectedDistanceKm} km
+                  {hasDiscount ? " (-20% discount)" : ""}
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={26} color="#636366" />
+            <Ionicons name="chevron-forward" size={24} color="#636366" />
           </TouchableOpacity>
+
+          {/* Quick Vehicle Type Selector */}
+          <View className="flex-row items-center justify-between mt-3 gap-2">
+            {[
+              { id: "traditional_puj", label: "Jeepney", base: "₱13" },
+              { id: "modern_puj", label: "Modern PUV", base: "₱15" },
+              { id: "uv_express", label: "UV Express", base: "₱20" },
+            ].map((v) => {
+              const isSelected = commuteMode === v.id;
+              return (
+                <TouchableOpacity
+                  key={v.id}
+                  onPress={() => {
+                    try {
+                      Haptics.selectionAsync();
+                    } catch {}
+                    setCommuteMode(v.id as any);
+                  }}
+                  activeOpacity={0.7}
+                  style={{
+                    backgroundColor: isSelected ? "#27272A" : "#141416",
+                    borderColor: isSelected ? "#FFFFFF" : "#27272A",
+                  }}
+                  className="flex-1 py-3 px-2 rounded-2xl border items-center justify-center"
+                >
+                  <Text
+                    className={`font-bold text-sm ${
+                      isSelected ? "text-white" : "text-[#A1A1AA]"
+                    }`}
+                  >
+                    {v.label}
+                  </Text>
+                  <Text className="text-xs text-[#71717A] mt-0.5 font-medium">
+                    {v.base} base
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Quick Distance Selector Pills */}
+          <View className="flex-row items-center justify-between mt-3 gap-2">
+            {DISTANCE_PRESETS.map((d) => {
+              const isSelected = selectedDistanceKm === d;
+              return (
+                <TouchableOpacity
+                  key={d}
+                  onPress={() => {
+                    try {
+                      Haptics.selectionAsync();
+                    } catch {}
+                    setPresetDistance(d);
+                  }}
+                  activeOpacity={0.7}
+                  style={{
+                    backgroundColor: isSelected ? "#FFFFFF" : "#141416",
+                    borderColor: isSelected ? "#FFFFFF" : "#27272A",
+                  }}
+                  className="flex-1 py-2 rounded-xl border items-center justify-center"
+                >
+                  <Text
+                    className={`font-bold text-sm ${
+                      isSelected ? "text-black" : "text-[#A1A1AA]"
+                    }`}
+                  >
+                    {d}km
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Quick Discount Switch Bar */}
+          <View className="flex-row items-center justify-between py-3 px-1 mt-2">
+            <View className="flex-row items-center">
+              <Ionicons
+                name="shield-checkmark"
+                size={20}
+                color={hasDiscount ? "#38BDF8" : "#71717A"}
+              />
+              <Text className="text-[#A1A1AA] text-sm font-semibold ml-2.5">
+                20% PWD / Senior / Student Discount
+              </Text>
+            </View>
+            <Switch
+              value={hasDiscount}
+              onValueChange={(val) => {
+                try {
+                  Haptics.selectionAsync();
+                } catch {}
+                setHasDiscount(val);
+              }}
+              trackColor={{ false: "#27272A", true: "#0284C7" }}
+              thumbColor={hasDiscount ? "#38BDF8" : "#A1A1AA"}
+            />
+          </View>
         </View>
       </ScrollView>
 
-      {/* FULLSCREEN ANIMATED FLASHCARD + CHATGPT VOICE MODE ORB */}
+      {/* FULLSCREEN ANIMATED FLASHCARD */}
       <Modal
         visible={fullscreenCard !== null}
         animationType="fade"
@@ -320,7 +426,7 @@ export default function HomeScreen() {
               </Animated.View>
             </TouchableOpacity>
 
-            {/* Large Glowing Voice Orb at Bottom */}
+            {/* Glowing Voice Orb at Bottom */}
             <View className="items-center pb-2">
               <VoiceOrb
                 isSpeaking={isSpeaking}
@@ -334,7 +440,7 @@ export default function HomeScreen() {
         )}
       </Modal>
 
-      {/* FARE GUIDE MODAL */}
+      {/* FARE GUIDE DETAILED MODAL */}
       <Modal
         visible={showFareModal}
         animationType="slide"
@@ -349,172 +455,137 @@ export default function HomeScreen() {
               onPress={() => setShowFareModal(false)}
               hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
-              <Ionicons name="close" size={34} color="#FFFFFF" />
+              <Ionicons name="close" size={32} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
-          <View className="items-center my-auto">
-            <Text className="text-[#8E8E93] text-lg font-semibold uppercase tracking-widest mb-2">
-              {commuteMode === "traditional" ? "Traditional Jeepney" : "Modern PUV"}
-            </Text>
-
-            <Text className="text-white font-black text-7xl tracking-tight my-2">
-              ₱{fareBreakdown.totalFare.toFixed(2)}
-            </Text>
-
-            <View className="flex-row items-center justify-center gap-12 mt-6">
-              <TouchableOpacity
-                onPress={() => adjustDistance(-1)}
-                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              >
-                <Ionicons name="chevron-back" size={40} color="#8E8E93" />
-              </TouchableOpacity>
-
-              <Text className="text-white font-bold text-4xl">
-                {selectedDistanceKm.toFixed(0)} km
+          <View className="my-auto">
+            <View className="flex-row items-baseline justify-between mb-8">
+              <Text className="text-[#8E8E93] text-xl font-medium">Estimated Fare</Text>
+              <Text className="text-white font-black text-6xl">
+                ₱{fareBreakdown.totalFare.toFixed(0)}
               </Text>
-
-              <TouchableOpacity
-                onPress={() => adjustDistance(1)}
-                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              >
-                <Ionicons name="chevron-forward" size={40} color="#8E8E93" />
-              </TouchableOpacity>
             </View>
 
-            <View className="flex-row gap-6 mt-8">
-              {DISTANCE_PRESETS.map((km) => (
+            {/* Vehicle Mode Selector */}
+            <View className="flex-row gap-3 mb-6">
+              {[
+                { id: "traditional_puj", label: "Jeepney" },
+                { id: "modern_puj", label: "Modern PUV" },
+                { id: "uv_express", label: "UV Express" },
+              ].map((v) => (
                 <TouchableOpacity
-                  key={km}
-                  onPress={() => setPresetDistance(km)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  key={v.id}
+                  onPress={() => setCommuteMode(v.id as any)}
+                  className={`flex-1 py-3 rounded-2xl items-center ${
+                    commuteMode === v.id ? "bg-[#27272A]" : "bg-[#141416]"
+                  }`}
                 >
                   <Text
-                    className={`text-xl font-bold ${
-                      selectedDistanceKm === km ? "text-white" : "text-[#52525B]"
+                    className={`font-semibold ${
+                      commuteMode === v.id ? "text-white" : "text-[#8E8E93]"
                     }`}
                   >
-                    {km} km
+                    {v.label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
 
-          <View className="gap-6">
-            <View className="flex-row items-center justify-between py-2">
-              <Text className="text-white font-bold text-xl">
-                Modern PUV
-              </Text>
-              <Switch
-                value={commuteMode === "modern"}
-                onValueChange={(v) => setCommuteMode(v ? "modern" : "traditional")}
-                thumbColor="#FFFFFF"
-                trackColor={{ false: "#27272A", true: "#52525B" }}
-              />
+            {/* Distance Adjuster */}
+            <View className="flex-row items-center justify-between py-6 border-y border-[#27272A]">
+              <Text className="text-white text-xl font-bold">Distance</Text>
+              <View className="flex-row items-center gap-6">
+                <TouchableOpacity
+                  onPress={() => adjustDistance(-1)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="remove-circle-outline" size={38} color="#FFFFFF" />
+                </TouchableOpacity>
+                <Text className="text-white font-bold text-3xl min-w-[70px] text-center">
+                  {selectedDistanceKm} km
+                </Text>
+                <TouchableOpacity
+                  onPress={() => adjustDistance(1)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="add-circle-outline" size={38} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <View className="flex-row items-center justify-between py-2">
-              <Text className="text-white font-bold text-xl">
-                20% Discount (PWD / Senior)
-              </Text>
+            {/* Distance Presets */}
+            <View className="flex-row justify-between mt-6">
+              {DISTANCE_PRESETS.map((d) => (
+                <TouchableOpacity
+                  key={d}
+                  onPress={() => setPresetDistance(d)}
+                  className={`px-4 py-2 rounded-xl ${
+                    selectedDistanceKm === d ? "bg-white" : "bg-[#1C1C1E]"
+                  }`}
+                >
+                  <Text
+                    className={`font-bold ${
+                      selectedDistanceKm === d ? "text-black" : "text-[#8E8E93]"
+                    }`}
+                  >
+                    {d}km
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Statutory Discount Toggle */}
+            <View className="flex-row items-center justify-between mt-8 py-2">
+              <View>
+                <Text className="text-white text-lg font-bold">20% Discount</Text>
+                <Text className="text-[#8E8E93] text-sm">PWD, Senior, Student</Text>
+              </View>
               <Switch
                 value={hasDiscount}
                 onValueChange={setHasDiscount}
+                trackColor={{ false: "#3F3F46", true: "#22C55E" }}
                 thumbColor="#FFFFFF"
-                trackColor={{ false: "#27272A", true: "#52525B" }}
               />
             </View>
-
-            <View className="flex-row justify-between items-center pt-4">
-              <TouchableOpacity onPress={() => setShowMatrixModal(true)}>
-                <Text className="text-[#8E8E93] font-bold text-lg">
-                  Rate Table
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity onPress={() => setShowLtfrbWebViewModal(true)}>
-                <Text className="text-white font-bold text-lg">
-                  Official LTFRB Portal
-                </Text>
-              </TouchableOpacity>
-            </View>
           </View>
-        </View>
-      </Modal>
 
-      {/* RATE MATRIX MODAL */}
-      <Modal
-        visible={showMatrixModal}
-        animationType="slide"
-        onRequestClose={() => setShowMatrixModal(false)}
-      >
-        <View className="flex-1 bg-[#000000] px-6 pt-12">
-          <View className="flex-row items-center justify-between pb-6">
-            <Text className="text-white text-3xl font-bold">
-              Rate Table
+          {/* Official LTFRB Matrix Button */}
+          <TouchableOpacity
+            onPress={() => setShowLtfrbWebViewModal(true)}
+            className="py-4 rounded-2xl bg-[#1C1C1E] items-center"
+          >
+            <Text className="text-white font-bold text-lg">
+              Official LTFRB Rate Table
             </Text>
-            <TouchableOpacity onPress={() => setShowMatrixModal(false)}>
-              <Ionicons name="close" size={34} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <View className="flex-row py-3 border-b border-[#27272A]">
-              <Text className="w-20 text-[#8E8E93] text-lg font-bold">KM</Text>
-              <Text className="flex-1 text-[#8E8E93] text-lg font-bold text-center">
-                Traditional
-              </Text>
-              <Text className="flex-1 text-[#8E8E93] text-lg font-bold text-center">
-                Modern
-              </Text>
-            </View>
-            {ltfrbMatrix.map((row) => (
-              <View
-                key={row.km}
-                className="flex-row py-4 border-b border-[#18181B] items-center"
-              >
-                <Text className="w-20 text-white font-bold text-lg">{row.km} km</Text>
-                <Text className="flex-1 text-white text-lg text-center font-semibold">
-                  ₱{row.regularTraditional.toFixed(2)}
-                </Text>
-                <Text className="flex-1 text-white text-lg text-center font-semibold">
-                  ₱{row.regularModern.toFixed(2)}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
+          </TouchableOpacity>
         </View>
       </Modal>
 
-      {/* IN-APP LTFRB WEBVIEW MODAL (Seamless Embedded WebView — No External Browser) */}
+      {/* LTFRB IN-APP WEBVIEW MODAL */}
       <Modal
         visible={showLtfrbWebViewModal}
         animationType="slide"
         onRequestClose={() => setShowLtfrbWebViewModal(false)}
       >
-        <View className="flex-1 bg-[#000000] pt-11">
-          <View className="px-6 pb-3 flex-row items-center justify-between">
-            <Text className="text-white font-bold text-2xl">
-              LTFRB Fare Rates
-            </Text>
+        <View className="flex-1 bg-[#000000]">
+          <View className="px-6 pt-12 pb-4 flex-row items-center justify-between border-b border-[#1C1C1E]">
+            <View>
+              <Text className="text-white text-xl font-bold">LTFRB Official Rates</Text>
+              <Text className="text-[#8E8E93] text-xs">Official Fare Matrix</Text>
+            </View>
             <TouchableOpacity
               onPress={() => setShowLtfrbWebViewModal(false)}
               hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
-              <Ionicons name="close" size={32} color="#FFFFFF" />
+              <Ionicons name="close" size={28} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-          <View className="flex-1 bg-[#000000]">
-            <WebView
-              source={{ uri: "https://ltfrb.gov.ph/fare-rates/" }}
-              startInLoadingState={false}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-              mixedContentMode="always"
-              className="flex-1"
-            />
-          </View>
+          <WebView
+            source={{ uri: "https://ltfrb.gov.ph/fare-rates/" }}
+            startInLoadingState={true}
+            className="flex-1"
+          />
         </View>
       </Modal>
     </View>

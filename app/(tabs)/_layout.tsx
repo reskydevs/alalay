@@ -4,9 +4,13 @@ import { Tabs } from "expo-router";
 import * as Speech from "expo-speech";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
-import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, 16);
+  const tabHeight = 56 + bottomPadding;
+
   useEffect(() => {
     Speech.speak(" ", {
       language: "en-US",
@@ -28,8 +32,8 @@ export default function TabLayout() {
             backgroundColor: "#000000",
             borderTopColor: "#1C1C1E",
             borderTopWidth: 1,
-            height: Platform.OS === "android" ? 64 : 80,
-            paddingBottom: Platform.OS === "android" ? 10 : 20,
+            height: tabHeight,
+            paddingBottom: bottomPadding,
             paddingTop: 8,
           },
           tabBarLabelStyle: {
