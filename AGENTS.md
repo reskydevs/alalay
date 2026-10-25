@@ -16,6 +16,9 @@ You are a staff-level software engineer acting as an autonomous coding partner. 
   3. The operation is destructive or irreversible (e.g., deleting production data, force-pushing shared branches, modifying secrets/billing).
   4. Execution is blocked by missing credentials, permissions, or external access.
 
+### Git Remote Safety (Push Invariant)
+- **Never Push Automatically:** Never run `git push` to `origin` or any remote repository automatically. Formulate clean conventional commits locally, report the commit hash, and wait for the user to explicitly say when to push.
+
 ### Engineering Workflow & 2-Strike Debugging Discipline
 1. **Inspect first:** Read relevant files, types, call sites, and existing tests before writing code.
 2. **Fix root causes (2-strike discipline):** Address the underlying defect rather than masking symptoms. If two consecutive attempts fail validation, stop stacking patches and re-verify your mental model of the system.
@@ -58,18 +61,28 @@ Match model selection (including subagent delegation) and thinking budget to the
 - **Unboxed Open-Canvas Layout (Tesla-Inspired):**
   - Use a pure pitch-black (`#000000`) background canvas.
   - Never nest bordered boxes inside boxes ("box within a box"). Utilize full-bleed horizontal and vertical screen space generously.
+- **Android 15 Edge-to-Edge & Gesture Navigation Safety:**
+  - Always elevate bottom navigation tab bars, floating action pills, and sticky footers using `useSafeAreaInsets().bottom` (`Math.max(insets.bottom, 16)`).
+  - Never hardcode static small bottom padding (e.g. `paddingBottom: 10`), which collides with the Android gesture navigation pill on devices like Nothing Phone (3a) Pro.
 - **Frameless Iconography & Zero Redundant Buttons:**
   - Do not wrap icon buttons in rectangular or circular border containers when the icon itself clearly communicates the action.
   - Never duplicate the same action button or tab shortcut multiple times on the same screen.
+- **User-Controlled Documents (Anti-Template Principle):**
+  - Never generate fake synthetic document templates (e.g., simulated ID numbers, fake barcodes, faux chips, or synthetic "Verified" badges) unless specifically requested.
+  - Give users direct ownership to attach their own real documents via Camera capture or Photo Gallery, and provide inline renaming controls.
+- **No Borrowed Branding or Comparative Claims:**
+  - Never include third-party comparisons in user-facing UI copy (e.g. do not say "Google Wallet style security", "Apple-like encryption").
+  - Use direct, honest on-device privacy notices: *"Stored locally on your device. Never uploaded online or to the cloud."*
 - **Enlarged, Low-Friction Typography:**
   - Minimize header and subtitle text. Prioritize large, bold, high-contrast typography (`text-2xl` to `text-6xl`) readable from a distance or in moving transit.
 - **Tactile & Visual Voice Feedback:**
   - Pair flashcard and speech interactions with haptic feedback, spring bounce animations, luminous glow states, and a ChatGPT Voice Mode-style animated orb/waveform (`components/VoiceOrb.tsx`).
-  - Use inclusive, personality-based voice model names (`Juan`, `Amihan`, `Tala`, `Bagwis`, `Sinag`) without gender labels.
+  - Use neutral, numbered voice identifiers (`Voice 1`, `Voice 2`, `Voice 3`, etc.) to keep voices open and unbiased for all commuters.
 - **Custom Context-Specific Flat Vector Animations:**
   - Each flashcard must display an original, unmistakable animated vector illustration (`components/FlashcardScene.tsx`) matching its commuter intent (e.g., raised stop hand for `PARA PO!`, cash/coin for `BAYAD PO!`, `-20%` ID pass for `PWD / SENIOR`, coins in palm for `SUKLI PO!`, curbside pin for `SA TABI LANG!`).
-- **Seamless In-App WebViews:**
-  - Keep external portals (`ltfrb.gov.ph/fare-rates`) and Google Maps navigation inside in-app `<WebView>` containers with `intent://` fallback URL extraction so users are never jarringly ejected to external browser tabs.
+- **Seamless In-App WebViews & Native Turn-by-Turn GPS Intents:**
+  - Keep external portals (`ltfrb.gov.ph/fare-rates`) and Google Maps station browsing inside in-app `<WebView>` containers with `intent://` fallback URL extraction so users are never jarringly ejected to external browser tabs.
+  - Because Google Maps WebViews intentionally block turn-by-turn navigation in mobile web browsers, provide a native intent launcher (`Linking.openURL('google.navigation:q=...')`) for real-time turn-by-turn GPS guidance.
 
 ---
 
