@@ -1,0 +1,44 @@
+{
+  "$schema": "./tools/device-driver/schema.json",
+  "version": "1.0.0",
+  "active_device_serial": "00170155D000432",
+  "devices": {
+    "00170155D000432": {
+      "model": "Nothing Phone (3a) Pro",
+      "device_code": "A059P",
+      "os_version": "Android 15 (Nothing OS 3.0)",
+      "display": {
+        "width": 1080,
+        "height": 2392,
+        "density_dpi": 480
+      },
+      "insets": {
+        "status_bar_top": 118,
+        "gesture_nav_bottom": 74
+      },
+      "canvas": {
+        "crop_box": [0, 118, 1080, 2318],
+        "width": 1080,
+        "height": 2200
+      },
+      "persistent_targets": {
+        "tab:commute": [135, 2300],
+        "tab:communicate": [405, 2300],
+        "tab:transit": [675, 2300],
+        "tab:id": [945, 2300],
+        "preset:4km": [135, 2158],
+        "preset:6km": [315, 2158],
+        "preset:8km": [500, 2158],
+        "preset:10km": [685, 2158],
+        "preset:15km": [870, 2158],
+        "vehicle:jeepney": [200, 1968],
+        "vehicle:modern": [500, 1968],
+        "vehicle:uv": [800, 1968],
+        "btn:fare_guide": [300, 1718],
+        "btn:rate_table": [540, 2220],
+        "btn:close": [950, 180],
+        "btn:discount_switch": [950, 2250]
+      }
+    }
+  }
+}

@@ -43,3 +43,5 @@ app-example
 # Temporary / Local Artifacts
 screenshot*.png
 generate_icons.ps1
+
+tools/device-driver/target/
